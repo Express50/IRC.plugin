@@ -24,6 +24,24 @@ namespace IRC.plugin
 
         private static TcpClient client = null;
 
+        #region EECloud
+        protected override void OnConnect()
+        {
+
+        }
+
+        protected override void OnDisable()
+        {
+
+        }
+
+        protected override void OnEnable()
+        {
+
+        }
+        #endregion
+
+        #region IRC Functions
         public static void Connect()
         {
             try
@@ -33,6 +51,8 @@ namespace IRC.plugin
 
                 reader = new StreamReader(nstream);
                 writer = new StreamWriter(nstream);
+
+                Identify();
             }
 
             catch
@@ -58,6 +78,13 @@ namespace IRC.plugin
                 client.Close();
         }
 
+        private static void Identify()
+        {
+            SendData("USER", nick + " - " + server + " :" + nick);
+            SendData("NICK", nick);
+            //SendData("NICKSERV", "IDENTIFY");
+        }
+
         private static void SendData(string cmd, string param = null)
         {
             if (param == null)
@@ -72,5 +99,6 @@ namespace IRC.plugin
                 writer.Flush();
             }
         }
+        #endregion
     }
 }
