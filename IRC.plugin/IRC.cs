@@ -25,6 +25,8 @@ namespace IRC.plugin
 
         private static TcpClient client = null;
 
+        private static bool isConnected = false;
+
         #region EECloud
         protected override void OnConnect()
         {
@@ -52,6 +54,8 @@ namespace IRC.plugin
 
                 reader = new StreamReader(nstream);
                 writer = new StreamWriter(nstream);
+
+                isConnected = true;
 
                 Identify();
             }
@@ -86,6 +90,17 @@ namespace IRC.plugin
             //SendData("NICKSERV", "IDENTIFY");
         }
 
+        public void Listen()
+        {
+            while (isConnected)
+            {
+                if (nstream.DataAvailable)
+                {
+
+                }
+            }
+        }
+
         private static void SendData(string cmd, string param = null)
         {
             if (param == null)
@@ -100,6 +115,17 @@ namespace IRC.plugin
                 writer.Flush();
             }
         }
+
+        private static void ParseMessage(string data)
+        {
+            string[] message = data.Split(':');
+
+            if (message[0] == "PING")
+            {
+                SendData("PONG", message[1]);
+            }
+        }
+
         #endregion
     }
 }
