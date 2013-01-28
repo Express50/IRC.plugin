@@ -8,7 +8,7 @@ using EECloud.API;
 namespace IRC.plugin
 {
     [Plugin(Authors = new string[] { "Bass5098", "Express50" },
-           Category = PluginCategory.Tool,
+           Category = PluginCategory.Admin,
            ChatName = "IRC",
            Description = "IRC interface for executing commands in your EECloud plugin.",
            Version = "0.0.1")]
