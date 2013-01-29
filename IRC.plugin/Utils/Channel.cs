@@ -8,6 +8,20 @@ namespace IRC.plugin.Utils
 {
     public class Channel
     {
-        public static List<User> users { get; set; }
+        private List<User> users;
+
+        public List<User> Users
+        {
+            get
+            {
+                return users;
+            }
+
+            set
+            {
+                users = Users;
+                return;
+            }
+        }
     }
 }
