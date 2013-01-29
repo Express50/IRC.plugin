@@ -223,6 +223,28 @@ namespace IRC.plugin
         private void onMode(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
+
+            //Split into onChannelMode() and onUserMode()
+
+            if (message.Length == 5)
+            {
+                onUserMode(sender, GetUserByNick(message[4]), message[3]);
+            }
+
+            else if (message.Length == 4)
+            {
+                onChannelMode(sender, message[3]);
+            }
+        }
+
+        private void onChannelMode(User sender, string modes)
+        {
+
+        }
+
+        private void onUserMode(User sender, User target, string modes)
+        {
+
         }
 
         private void onKick(string hostmask, string[] message)
@@ -233,16 +255,45 @@ namespace IRC.plugin
         private void onJoin(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
+
+            channel.Users.Add(sender);
         }
 
         private void onPart(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
+
+            if (channel.Users.Contains(sender))
+            {
+                channel.Users.Remove(sender);
+            }
         }
 
         private void ExecuteCommand(string data)
         {
 
+        }
+
+        private User GetUserByNick(string nick)
+        {
+            for (int i = 0; i < channel.Users.Count; i++)
+            {
+                if (channel.Users[i].Nick == nick)
+                    return channel.Users[i];
+            }
+
+            return null;
+        }
+
+        private User GetUserByHostname(string hostname)
+        {
+            for (int i = 0; i < channel.Users.Count; i++)
+            {
+                if (channel.Users[i].Hostname == hostname)
+                    return channel.Users[i];
+            }
+
+            return null;
         }
 
         private User ExtractUserInfo(string hostmask)

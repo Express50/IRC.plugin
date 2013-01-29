@@ -10,6 +10,8 @@ namespace IRC.plugin.Utils
     {
         public string Name { get; set; }
 
+        public string Modes { get; set; }
+
         public List<User> Users { get; set; }
     }
 }
