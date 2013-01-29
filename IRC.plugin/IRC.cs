@@ -16,18 +16,18 @@ namespace IRC.plugin
            Version = "0.0.1")]
     public class IRC : Plugin<Player, IRC>
     {
-        private static string server;
-        private static int port;
-        private static string nick;
-        private static Channel channel;
+        private string server;
+        private int port;
+        private string nick;
+        private Channel channel;
 
-        static NetworkStream nstream = null;
-        static StreamWriter writer = null;
-        static StreamReader reader = null;
+        NetworkStream nstream = null;
+        StreamWriter writer = null;
+        StreamReader reader = null;
 
-        private static TcpClient client = null;
+        private TcpClient client = null;
 
-        private static bool isConnected = false;
+        private bool isConnected = false;
 
         public IRC(string Nick, string ChannelName, int Port = 6667, string Server = "irc.rizon.net")
         {
@@ -55,7 +55,7 @@ namespace IRC.plugin
         #endregion
 
         #region IRC Functions
-        public static void Connect()
+        public void Connect()
         {
             try
             {
@@ -76,7 +76,7 @@ namespace IRC.plugin
             }
         }
 
-        private static void Disconnect()
+        private void Disconnect()
         {
             if (isConnected)
             {
@@ -96,7 +96,7 @@ namespace IRC.plugin
                 client.Close();
         }
 
-        private static void Identify()
+        private void Identify()
         {
             SendData("USER", nick + " - " + server + " :" + nick);
             SendData("NICK", nick);
@@ -114,7 +114,7 @@ namespace IRC.plugin
             }
         }
 
-        private static void SendData(string cmd, string param = null)
+        private void SendData(string cmd, string param = null)
         {
             if (param == null)
             {
@@ -129,16 +129,19 @@ namespace IRC.plugin
             }
         }
 
-        private static void ParseReceivedData(string data)
+        private void ParseReceivedData(string data)
         {
             string[] message = data.Split(' ');
             string hostmask;
 
+            //Parse ping
             if (message[0] == "PING")
             {
                 SendData("PONG", message[1]);
+                return;
             }
 
+            //Parse numerics
             int numeric;
             if (int.TryParse(message[1], out numeric))
             {
@@ -147,9 +150,13 @@ namespace IRC.plugin
                     case (int)Numerics.RPL_NAMREPLY:
                         onNames(message);
                         break;
+                    default:
+                        break;
                 }
+                return;
             }
 
+            //Parse command
             else if (message[0].StartsWith(":"))
             {
                 hostmask = message[0].Substring(message[0].IndexOf(':') + 1);
@@ -160,14 +167,19 @@ namespace IRC.plugin
                         onPrivMsg(hostmask, message);
                         break;
                     case "NOTICE":
+                        onNotice(hostmask, message);
                         break;
                     case "MODE":
+                        onMode(hostmask, message);
                         break;
                     case "KICK":
+                        onKick(hostmask, message);
                         break;
                     case "JOIN":
+                        onJoin(hostmask, message);
                         break;
                     case "PART":
+                        onPart(hostmask, message);
                         break;
                     default:
                         break;
@@ -175,23 +187,27 @@ namespace IRC.plugin
             }
         }
 
-        private static void onNames(string[] message)
+        private void onNames(string[] message)
         {
             if (message[2] == channel.Name)
             {
                 for (int i = 3; i < message.Length; i++)
                 {
-                    channel.Users.Add(new User(message[i].Substring(1)));
+                    if (channel.Users.Exists(
+                        delegate(User user)
+                        {
+                            return user.Nick == message[i].Substring(1);
+                        }))
+                    {
+                        channel.Users.Add(new User(message[i].Substring(1)));
+                    }
                 }
             }
         }
 
-        private static void onPrivMsg(string hostmask, string[] message)
+        private void onPrivMsg(string hostmask, string[] message)
         {
-            User sender = new User();
-            sender.Nick = message[0].Substring(message[0].IndexOf(':') + 1, message[0].IndexOf('!'));
-            sender.Realname = message[0].Substring(message[0].IndexOf('!') + 1, message[0].IndexOf('@'));
-            sender.Hostname = message[0].Substring(message[0].IndexOf('@') + 1);
+            User sender = ExtractUserInfo(hostmask);
 
             if (message[2] == channel.Name && message[3].StartsWith("!"))
             {
@@ -199,34 +215,45 @@ namespace IRC.plugin
             }
         }
 
-        private static void onNotice(string hostmask, string[] message)
+        private void onNotice(string hostmask, string[] message)
+        {
+            User sender = ExtractUserInfo(hostmask);
+        }
+
+        private void onMode(string hostmask, string[] message)
+        {
+            User sender = ExtractUserInfo(hostmask);
+        }
+
+        private void onKick(string hostmask, string[] message)
+        {
+            User sender = ExtractUserInfo(hostmask);
+        }
+
+        private void onJoin(string hostmask, string[] message)
+        {
+            User sender = ExtractUserInfo(hostmask);
+        }
+
+        private void onPart(string hostmask, string[] message)
+        {
+            User sender = ExtractUserInfo(hostmask);
+        }
+
+        private void ExecuteCommand(string data)
         {
 
         }
 
-        private static void onMode(string hostmask, string[] message)
+        private User ExtractUserInfo(string hostmask)
         {
+            User user = new User();
 
-        }
+            user.Nick = hostmask.Substring(hostmask.IndexOf(':') + 1, hostmask.IndexOf('!'));
+            user.Realname = hostmask.Substring(hostmask.IndexOf('!') + 1, hostmask.IndexOf('@'));
+            user.Hostname = hostmask.Substring(hostmask.IndexOf('@') + 1);
 
-        private static void onKick(string hostmask, string[] message)
-        {
-
-        }
-
-        private static void onJoin(string hostmask, string[] message)
-        {
-
-        }
-
-        private static void onPart(string hostmask, string[] message)
-        {
-
-        }
-
-        private static void ExecuteCommand(string data)
-        {
-
+            return user;
         }
 
         #endregion
