@@ -19,15 +19,15 @@ namespace IRC.plugin
         private string server;
         private int port;
         private string nick;
-        private Channel channel;
+        private Channel channel = new Channel();
 
-        NetworkStream nstream = null;
-        StreamWriter writer = null;
-        StreamReader reader = null;
+        private NetworkStream nstream = null;
+        private StreamWriter writer = null;
+        private StreamReader reader = null;
 
         private TcpClient client = null;
 
-        private bool isConnected = false;
+        public bool isConnected = false;
 
         public IRC(string Nick, string ChannelName, int Port = 6667, string Server = "irc.rizon.net")
         {
@@ -68,6 +68,9 @@ namespace IRC.plugin
                 isConnected = true;
 
                 Identify();
+
+                SendData("JOIN", channel.Name);
+                Listen();
             }
 
             catch
@@ -107,10 +110,7 @@ namespace IRC.plugin
         {
             while (isConnected)
             {
-                if (nstream.DataAvailable)
-                {
-                    ParseReceivedData(reader.ReadLine());
-                }
+                ParseReceivedData(reader.ReadLine());
             }
         }
 
@@ -131,6 +131,7 @@ namespace IRC.plugin
 
         private void ParseReceivedData(string data)
         {
+            Console.WriteLine(data);
             string[] message = data.Split(' ');
             string hostmask;
 
@@ -239,7 +240,7 @@ namespace IRC.plugin
 
         private void onChannelMode(User sender, string modes)
         {
-
+            channel.Modes = modes;
         }
 
         private void onUserMode(User sender, User target, string modes)
