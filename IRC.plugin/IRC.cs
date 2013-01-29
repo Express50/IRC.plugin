@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.IO;
 using EECloud.API;
 using IRC.plugin.Utils;
+using IRC.plugin.Parts;
 
 namespace IRC.plugin
 {
@@ -77,7 +78,10 @@ namespace IRC.plugin
 
         private static void Disconnect()
         {
-            SendData("QUIT");
+            if (isConnected)
+            {
+                SendData("QUIT");
+            }
 
             if (reader != null)
                 reader.Close();
@@ -105,7 +109,7 @@ namespace IRC.plugin
             {
                 if (nstream.DataAvailable)
                 {
-
+                    ParseReceivedData(reader.ReadLine());
                 }
             }
         }
@@ -125,29 +129,34 @@ namespace IRC.plugin
             }
         }
 
-        private static void ParseMessage(string data)
+        private static void ParseReceivedData(string data)
         {
-            string[] message = data.Split(':');
-            User sender = new User();
+            string[] message = data.Split(' ');
+            string hostmask;
 
             if (message[0] == "PING")
             {
                 SendData("PONG", message[1]);
             }
 
+            int numeric;
+            if (int.TryParse(message[1], out numeric))
+            {
+                switch (numeric)
+                {
+                    default:
+                        break;
+                }
+            }
+
             else if (message[0].StartsWith(":"))
             {
-                sender.Nick = message[0].Substring(message[0].IndexOf(':') + 1, message[0].IndexOf('!'));
-                sender.Realname = message[0].Substring(message[0].IndexOf('!') + 1, message[0].IndexOf('@'));
-                sender.Hostname = message[0].Substring(message[0].IndexOf('@') + 1);
+                hostmask = message[0].Substring(message[0].IndexOf(':') + 1);
 
                 switch (message[1])
                 {
                     case "PRIVMSG":
-                        if (message[2] == channel && message[3].StartsWith("!"))
-                        {
-                            ExecuteCommand(message[3].Substring(message[3].IndexOf(':') + 1);
-                        }
+                        onPrivMsg(hostmask, message);
                         break;
                     case "NOTICE":
                         break;
@@ -159,11 +168,51 @@ namespace IRC.plugin
                         break;
                     case "PART":
                         break;
+                    default:
+                        break;
                 }
             }
         }
 
-        private static void ExecuteCommand(string command)
+        private static void onPrivMsg(string hostmask, string[] message)
+        {
+            User sender = new User();
+            sender.Nick = message[0].Substring(message[0].IndexOf(':') + 1, message[0].IndexOf('!'));
+            sender.Realname = message[0].Substring(message[0].IndexOf('!') + 1, message[0].IndexOf('@'));
+            sender.Hostname = message[0].Substring(message[0].IndexOf('@') + 1);
+
+            if (message[2] == channel && message[3].StartsWith("!"))
+            {
+                //ExecuteCommand(message[3]);
+            }
+        }
+
+        private static void onNotice(string hostmask, string[] message)
+        {
+
+        }
+
+        private static void onMode(string hostmask, string[] message)
+        {
+
+        }
+
+        private static void onKick(string hostmask, string[] message)
+        {
+
+        }
+
+        private static void onJoin(string hostmask, string[] message)
+        {
+
+        }
+
+        private static void onPart(string hostmask, string[] message)
+        {
+
+        }
+
+        private static void ExecuteCommand(string data)
         {
 
         }
