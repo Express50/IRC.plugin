@@ -8,64 +8,22 @@ namespace IRC.plugin.Utils
 {
     public class User
     {
-        private string nick;
 
-        public string Nick
+        public string Nick { get; set; }
+
+        public string Hostname { get; set; }
+
+
+        public string Realname { get; set; }
+
+
+        public string Modes { get; set; }
+
+        public User() { }
+
+        public User(string nick)
         {
-            get
-            {
-                return this.nick;
-            }
-
-            set
-            {
-                this.nick = Nick;
-            }
-        }
-
-        private string hostname;
-
-        public string Hostname
-        {
-            get
-            {
-                return this.hostname;
-            }
-
-            set
-            {
-                this.hostname = Hostname;
-            }
-        }
-
-        private string realname;
-
-        public string Realname
-        {
-            get
-            {
-                return this.realname;
-            }
-
-            set
-            {
-                this.realname = Realname;
-            }
-        }
-
-        private string modes;
-
-        public string Modes
-        {
-            get
-            {
-                return this.modes;
-            }
-
-            set
-            {
-                this.modes = Modes;
-            }
+            Nick = nick;
         }
     }
 }

@@ -19,7 +19,7 @@ namespace IRC.plugin
         private static string server;
         private static int port;
         private static string nick;
-        private static string channel;
+        private static Channel channel;
 
         static NetworkStream nstream = null;
         static StreamWriter writer = null;
@@ -29,12 +29,12 @@ namespace IRC.plugin
 
         private static bool isConnected = false;
 
-        public IRC(string Nick, string Channel, int Port = 6667, string Server = "irc.rizon.net")
+        public IRC(string Nick, string ChannelName, int Port = 6667, string Server = "irc.rizon.net")
         {
             server = Server;
             port = Port;
             nick = Nick;
-            channel = Channel;
+            channel.Name = ChannelName;
         }
 
         #region EECloud
@@ -144,7 +144,8 @@ namespace IRC.plugin
             {
                 switch (numeric)
                 {
-                    default:
+                    case (int)Numerics.RPL_NAMREPLY:
+                        onNames(message);
                         break;
                 }
             }
@@ -174,6 +175,17 @@ namespace IRC.plugin
             }
         }
 
+        private static void onNames(string[] message)
+        {
+            if (message[2] == channel.Name)
+            {
+                for (int i = 3; i < message.Length; i++)
+                {
+                    channel.Users.Add(new User(message[i].Substring(1)));
+                }
+            }
+        }
+
         private static void onPrivMsg(string hostmask, string[] message)
         {
             User sender = new User();
@@ -181,7 +193,7 @@ namespace IRC.plugin
             sender.Realname = message[0].Substring(message[0].IndexOf('!') + 1, message[0].IndexOf('@'));
             sender.Hostname = message[0].Substring(message[0].IndexOf('@') + 1);
 
-            if (message[2] == channel && message[3].StartsWith("!"))
+            if (message[2] == channel.Name && message[3].StartsWith("!"))
             {
                 //ExecuteCommand(message[3]);
             }

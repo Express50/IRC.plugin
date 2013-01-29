@@ -8,20 +8,8 @@ namespace IRC.plugin.Utils
 {
     public class Channel
     {
-        private List<User> users;
+        public string Name { get; set; }
 
-        public List<User> Users
-        {
-            get
-            {
-                return users;
-            }
-
-            set
-            {
-                users = Users;
-                return;
-            }
-        }
+        public List<User> Users { get; set; }
     }
 }
