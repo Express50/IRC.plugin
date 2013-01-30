@@ -380,17 +380,10 @@ namespace IRC.plugin
             {
                 User user = new User();
 
-                Match nickmatch = Regex.Match(hostmask, @"^([A-Za-z0-9\-]+)\!", RegexOptions.IgnoreCase);
-                if (nickmatch.Success)
-                    user.Nick = nickmatch.Groups[1].Value;
-
-                Match realnamematch = Regex.Match(hostmask, @"!([A-Za-z0-9\-]+)\@", RegexOptions.IgnoreCase);
-                if (realnamematch.Success)
-                    user.Realname = realnamematch.Groups[1].Value;
-
-                Match hostnamematch = Regex.Match(hostmask, @"@([A-Za-z0-9\.\-]+)$", RegexOptions.IgnoreCase);
-                if (hostnamematch.Success)
-                    user.Hostname = hostnamematch.Groups[1].Value;
+                Match matches = Regex.Match(hostmask, @"^([A-Za-z0-9\-]+)!([A-Za-z0-9\-]+)\@([A-Za-z0-9\.\-]+)", RegexOptions.IgnoreCase);
+                user.Nick = matches.Groups[1].Value;
+                user.Realname = matches.Groups[2].Value;
+                user.Hostname = matches.Groups[3].Value;
 
                 return user;
             }
