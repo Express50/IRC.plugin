@@ -16,8 +16,8 @@ namespace IRC.plugin
            Version = "0.0.1")]
     public class IRC : Plugin<Player, IRC>
     {
-        private string server;
-        private int port;
+        private string server = "irc.rizon.net";
+        private int port = 6667;
         private string nick;
         private Channel channel = new Channel();
 
@@ -28,14 +28,6 @@ namespace IRC.plugin
         private TcpClient client = null;
 
         public bool isConnected = false;
-
-        public IRC(string Nick, string ChannelName, int Port = 6667, string Server = "irc.rizon.net")
-        {
-            server = Server;
-            port = Port;
-            nick = Nick;
-            channel.Name = ChannelName;
-        }
 
         #region EECloud
         protected override void OnConnect()
