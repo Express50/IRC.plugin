@@ -6,6 +6,7 @@ using System.IO;
 using EECloud.API;
 using IRC.plugin.Utils;
 using IRC.plugin.Parts;
+using System.Threading;
 
 namespace IRC.plugin
 {
@@ -26,6 +27,8 @@ namespace IRC.plugin
         private StreamReader reader = null;
 
         private TcpClient client = null;
+
+        private Thread ListenThread;
 
         public bool isConnected = false;
 
@@ -48,6 +51,7 @@ namespace IRC.plugin
             port = 6667;
             nick = "RunBot";
             channel = new Channel("#RunEE");
+            ListenThread = new Thread(Listen);
         }
         #endregion
 
@@ -56,6 +60,7 @@ namespace IRC.plugin
         {
             try
             {
+                Cloud.Logger.Log(LogPriority.Debug, "Attempting to establish a connection...");
                 client = new TcpClient(server, port);
                 nstream = client.GetStream();
 
@@ -64,16 +69,27 @@ namespace IRC.plugin
 
                 isConnected = true;
 
+                ListenThread.Start();
+
+                Cloud.Logger.Log(LogPriority.Debug, "Successfully connected");
+
                 Identify();
 
+                Cloud.Logger.Log(LogPriority.Debug, "Successfully identified");
+
+                Cloud.Logger.Log(LogPriority.Debug, "Joining channel...");
                 SendData("JOIN", channel.Name);
+
+                Cloud.Logger.Log(LogPriority.Debug, "Retrieving channel modes...");
                 SendData("MODE", channel.Name);
-                Listen();
+
+                SendData("PRIVMSG", channel.Name + " Test");
             }
 
-            catch
+            catch (Exception ex)
             {
-
+                Cloud.Logger.Log(LogPriority.Debug, "Failed to connect to irc server");
+                Cloud.Logger.Log(LogPriority.Debug, ex.Message);
             }
         }
 
@@ -99,9 +115,18 @@ namespace IRC.plugin
 
         private void Identify()
         {
-            SendData("USER", nick + " - " + server + " :" + nick);
-            SendData("NICK", nick);
-            //SendData("NICKSERV", "IDENTIFY");
+            try
+            {
+                Cloud.Logger.Log(LogPriority.Debug, "Attempting to identify");
+                SendData("USER", nick + " - " + server + " :" + nick);
+                SendData("NICK", nick);
+                //SendData("NICKSERV", "IDENTIFY");
+            }
+
+            catch (Exception ex)
+            {
+                Cloud.Logger.Log(LogPriority.Debug, "Failed to identify");
+            }
         }
 
         public void Listen()
@@ -109,6 +134,7 @@ namespace IRC.plugin
             while (isConnected)
             {
                 ParseReceivedData(reader.ReadLine());
+                Thread.Sleep(100);
             }
         }
 
@@ -160,28 +186,31 @@ namespace IRC.plugin
             {
                 hostmask = message[0].Substring(message[0].IndexOf(':') + 1);
 
-                switch (message[1])
+                if (hostmask.Contains('@') && hostmask.Contains('!'))
                 {
-                    case "PRIVMSG":
-                        onPrivMsg(hostmask, message);
-                        break;
-                    case "NOTICE":
-                        onNotice(hostmask, message);
-                        break;
-                    case "MODE":
-                        onMode(hostmask, message);
-                        break;
-                    case "KICK":
-                        onKick(hostmask, message);
-                        break;
-                    case "JOIN":
-                        onJoin(hostmask, message);
-                        break;
-                    case "PART":
-                        onPart(hostmask, message);
-                        break;
-                    default:
-                        break;
+                    switch (message[1])
+                    {
+                        case "PRIVMSG":
+                            onPrivMsg(hostmask, message);
+                            break;
+                        case "NOTICE":
+                            onNotice(hostmask, message);
+                            break;
+                        case "MODE":
+                            onMode(hostmask, message);
+                            break;
+                        case "KICK":
+                            onKick(hostmask, message);
+                            break;
+                        case "JOIN":
+                            onJoin(hostmask, message);
+                            break;
+                        case "PART":
+                            onPart(hostmask, message);
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
         }
@@ -225,12 +254,17 @@ namespace IRC.plugin
 
             //Split into onChannelMode() and onUserMode()
 
-            if (message.Length == 5)
+            if (message[0].Contains(nick)) //your own mode
+            {
+                return;
+            }
+
+            else if (message.Length == 5) //user mode
             {
                 onUserMode(sender, GetUserByNick(message[4]), message[3]);
             }
 
-            else if (message.Length == 4)
+            else if (message.Length == 4) //channel mode
             {
                 onChannelMode(sender, message[3]);
             }
@@ -253,12 +287,12 @@ namespace IRC.plugin
 
                 else
                 {
-                    if (addMode == true)
+                    if (addMode == true && !(channel.Modes.Contains(modes[i])))
                     {
                         channel.Modes.Insert(channel.Modes.Length, modes[i].ToString()); //insert new mode
                     }
 
-                    else if (addMode == false)
+                    else if (addMode == false && channel.Modes.Contains(modes[i]))
                     {
                         channel.Modes.Remove(channel.Modes.IndexOf(modes[i]), 1); //remove existing mode
                     }
@@ -322,13 +356,22 @@ namespace IRC.plugin
 
         private User ExtractUserInfo(string hostmask)
         {
-            User user = new User();
+            try
+            {
+                User user = new User();
 
-            user.Nick = hostmask.Substring(hostmask.IndexOf(':') + 1, hostmask.IndexOf('!'));
-            user.Realname = hostmask.Substring(hostmask.IndexOf('!') + 1, hostmask.IndexOf('@'));
-            user.Hostname = hostmask.Substring(hostmask.IndexOf('@') + 1);
+                user.Nick = hostmask.Substring(hostmask.IndexOf(':') + 1, hostmask.IndexOf('!'));
+                user.Realname = hostmask.Substring(hostmask.IndexOf('!') + 1, (hostmask.IndexOf('@') - hostmask.IndexOf('!')) - 1);
+                user.Hostname = hostmask.Substring(hostmask.IndexOf('@') + 1);
 
-            return user;
+                return user;
+            }
+
+            catch (Exception ex)
+            {
+                Cloud.Logger.Log(LogPriority.Debug, "Couldn't extract user info from hostmask: " + hostmask);
+                return null;
+            }
         }
 
         #endregion

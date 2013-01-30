@@ -17,6 +17,8 @@ namespace IRC.plugin.Utils
         public Channel(string name)
         {
             Name = name;
+            Modes = "";
+            Users = new List<User>();
         }
     }
 }
