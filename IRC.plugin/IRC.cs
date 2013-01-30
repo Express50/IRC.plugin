@@ -100,6 +100,8 @@ namespace IRC.plugin
                 SendData("QUIT");
             }
 
+            ListenThread.Abort();
+
             if (reader != null)
                 reader.Close();
 
@@ -236,10 +238,11 @@ namespace IRC.plugin
         private void onPrivMsg(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
+            message[3] = message[3].Remove(0, 1); //remove ':'
 
             if (message[2] == channel.Name && message[3].StartsWith("!"))
             {
-                //ExecuteCommand(message[3]);
+                ExecuteCommand(message[3]);
             }
         }
 
@@ -327,9 +330,25 @@ namespace IRC.plugin
             }
         }
 
-        private void ExecuteCommand(string data)
+        private void ExecuteCommand(string command)
         {
+            command = command.Remove(0, 1); //remove cmd char
+            command.ToLower();
 
+            string[] cmdParts = command.Split(' ');
+
+            switch (cmdParts[0])
+            {
+                case "hi":
+                case "hello":
+                    SendData("PRIVMSG", channel.Name + " Hey!");
+                    break;
+                case "quit":
+                    Disconnect();
+                    break;
+                default:
+                    break;
+            }
         }
 
         private User GetUserByNick(string nick)
