@@ -70,6 +70,7 @@ namespace IRC.plugin
                 Identify();
 
                 SendData("JOIN", channel.Name);
+                SendData("MODE", channel.Name);
                 Listen();
             }
 
@@ -240,7 +241,32 @@ namespace IRC.plugin
 
         private void onChannelMode(User sender, string modes)
         {
-            channel.Modes = modes;
+            bool addMode = false;
+            for (int i = 0; i < modes.Length; i++)
+            {
+                if (modes[i] == '+') //switch to adding modes
+                {
+                    addMode = true;
+                }
+
+                else if (modes[i] == '-') //switch to removing modes
+                {
+                    addMode = false;
+                }
+
+                else
+                {
+                    if (addMode == true)
+                    {
+                        channel.Modes.Insert(channel.Modes.Length, modes[i].ToString()); //insert new mode
+                    }
+
+                    else if (addMode == false)
+                    {
+                        channel.Modes.Remove(channel.Modes.IndexOf(modes[i]), 1); //remove existing mode
+                    }
+                }
+            }
         }
 
         private void onUserMode(User sender, User target, string modes)
