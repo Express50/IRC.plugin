@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 using System.IO;
+using System.Text.RegularExpressions;
 using EECloud.API;
 using IRC.plugin.Utils;
 using IRC.plugin.Parts;
@@ -379,9 +380,17 @@ namespace IRC.plugin
             {
                 User user = new User();
 
-                user.Nick = hostmask.Substring(hostmask.IndexOf(':') + 1, hostmask.IndexOf('!'));
-                user.Realname = hostmask.Substring(hostmask.IndexOf('!') + 1, (hostmask.IndexOf('@') - hostmask.IndexOf('!')) - 1);
-                user.Hostname = hostmask.Substring(hostmask.IndexOf('@') + 1);
+                Match nickmatch = Regex.Match(hostmask, @"^([A-Za-z0-9\-]+)\!", RegexOptions.IgnoreCase);
+                if (nickmatch.Success)
+                    user.Nick = nickmatch.Groups[1].Value;
+
+                Match realnamematch = Regex.Match(hostmask, @"!([A-Za-z0-9\-]+)\@", RegexOptions.IgnoreCase);
+                if (realnamematch.Success)
+                    user.Realname = realnamematch.Groups[1].Value;
+
+                Match hostnamematch = Regex.Match(hostmask, @"@([A-Za-z0-9\.\-]+)$", RegexOptions.IgnoreCase);
+                if (hostnamematch.Success)
+                    user.Hostname = hostnamematch.Groups[1].Value;
 
                 return user;
             }
