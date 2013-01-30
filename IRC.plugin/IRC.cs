@@ -16,10 +16,10 @@ namespace IRC.plugin
            Version = "0.0.1")]
     public class IRC : Plugin<Player, IRC>
     {
-        private string server = "irc.rizon.net";
-        private int port = 6667;
+        private string server;
+        private int port;
         private string nick;
-        private Channel channel = new Channel();
+        private Channel channel;
 
         private NetworkStream nstream = null;
         private StreamWriter writer = null;
@@ -32,17 +32,22 @@ namespace IRC.plugin
         #region EECloud
         protected override void OnConnect()
         {
-
+            Cloud.Logger.Log(LogPriority.Debug, "Connected");
+            this.Connect();
         }
 
         protected override void OnDisable()
         {
-
+            Cloud.Logger.Log(LogPriority.Debug, "Disabled");
         }
 
         protected override void OnEnable()
         {
-
+            Cloud.Logger.Log(LogPriority.Debug, "Enabled");
+            server = "irc.rizon.net";
+            port = 6667;
+            nick = "RunBot";
+            channel = new Channel("#RunEE");
         }
         #endregion
 
@@ -124,7 +129,7 @@ namespace IRC.plugin
 
         private void ParseReceivedData(string data)
         {
-            Console.WriteLine(data);
+            Cloud.Logger.Log(LogPriority.Debug, data);
             string[] message = data.Split(' ');
             string hostmask;
 

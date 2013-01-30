@@ -4,15 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{12C90F4C-8167-4B6D-BCA3-AD5BA2B489A5}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{EA5CB6ED-3465-4A35-B00B-C04505FA6E05}</ProjectGuid>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>IRC.plugin</RootNamespace>
-    <AssemblyName>IRC.plugin</AssemblyName>
+    <RootNamespace>IRC.host</RootNamespace>
+    <AssemblyName>IRC.host</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,6 +23,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -29,8 +31,21 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>IRC.host.Program</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="EECloud.API, Version=0.9.21.0, Culture=neutral, processorArchitecture=x86" />
+    <Reference Include="EECloud.API, Version=0.9.21.0, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\AppData\Roaming\EEDev\EECloud\EECloud.API.dll</HintPath>
+    </Reference>
+    <Reference Include="EECloud.Host, Version=0.9.21.0, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\AppData\Roaming\EEDev\EECloud\EECloud.Host.dll</HintPath>
+    </Reference>
+    <Reference Include="IRC.plugin">
+      <HintPath>..\IRC.plugin\bin\Debug\IRC.plugin.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -40,12 +55,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IRC.cs" />
-    <Compile Include="Parts\Commands.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utils\Channel.cs" />
-    <Compile Include="Utils\Numerics.cs" />
-    <Compile Include="Utils\User.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
