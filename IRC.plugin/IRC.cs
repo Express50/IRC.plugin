@@ -78,13 +78,13 @@ namespace IRC.plugin
 
                 Cloud.Logger.Log(LogPriority.Debug, "Successfully identified");
 
-                Cloud.Logger.Log(LogPriority.Debug, "Joining channel...");
-                SendData("JOIN", channel.Name);
+                //Cloud.Logger.Log(LogPriority.Debug, "Joining channel...");
+                //SendData("JOIN", channel.Name);
 
                 Cloud.Logger.Log(LogPriority.Debug, "Retrieving channel modes...");
                 SendData("MODE", channel.Name);
 
-                SendData("PRIVMSG", channel.Name + " Test");
+                //SendData("PRIVMSG", channel.Name + " Test");
             }
 
             catch (Exception ex)
@@ -160,6 +160,7 @@ namespace IRC.plugin
         {
             Cloud.Logger.Log(LogPriority.Debug, data);
             string[] message = data.Split(' ');
+
             string hostmask;
 
             //Parse ping
@@ -178,6 +179,12 @@ namespace IRC.plugin
                     case (int)Numerics.RPL_NAMREPLY:
                         onNames(message);
                         break;
+                    case (int)Numerics.RPL_CHANNELMODEIS:
+                        if (message[3] == channel.Name)
+                        {
+                            onChannelModeInit(message[4]);
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -187,6 +194,12 @@ namespace IRC.plugin
             //Parse command
             else if (message[0].StartsWith(":"))
             {
+                for (int i = 0; i < message.Length; i++)
+                {
+                    if (message[i].StartsWith(":"))
+                        message[i] = message[i].Remove(0, 1);
+                }
+
                 hostmask = message[0].Substring(message[0].IndexOf(':') + 1);
 
                 if (hostmask.Contains('@') && hostmask.Contains('!'))
@@ -239,7 +252,7 @@ namespace IRC.plugin
         private void onPrivMsg(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
-            message[3] = message[3].Remove(0, 1); //remove ':'
+            //message[3] = message[3].Remove(0, 1); //remove ':'
 
             if (message[2] == channel.Name && message[3].StartsWith("!"))
             {
@@ -252,25 +265,30 @@ namespace IRC.plugin
             User sender = ExtractUserInfo(hostmask);
         }
 
+        private void onChannelModeInit(string modes)
+        {
+            channel.Modes = modes.Remove(0, 1); //remove '+' and set modes
+        }
+
         private void onMode(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
 
             //Split into onChannelMode() and onUserMode()
 
-            if (message[0].Contains(nick)) //your own mode
+            if (sender.Nick == nick) //your own mode
             {
                 return;
             }
 
-            else if (message.Length == 5) //user mode
+            else if (message[3].Contains('#') && message[3] == channel.Name) //channel mode
             {
-                onUserMode(sender, GetUserByNick(message[4]), message[3]);
+                onChannelMode(sender, message[4]);
             }
 
-            else if (message.Length == 4) //channel mode
+            else //user mode
             {
-                onChannelMode(sender, message[3]);
+                onUserMode(sender, GetUserByNick(message[4]), message[3]);
             }
         }
 
@@ -381,16 +399,23 @@ namespace IRC.plugin
                 User user = new User();
 
                 Match matches = Regex.Match(hostmask, @"^([A-Za-z0-9\-]+)!([A-Za-z0-9\-]+)\@([A-Za-z0-9\.\-]+)", RegexOptions.IgnoreCase);
-                user.Nick = matches.Groups[1].Value;
-                user.Realname = matches.Groups[2].Value;
-                user.Hostname = matches.Groups[3].Value;
+
+                if (matches.Success == false)
+                    throw new Exception();
+
+                else
+                {
+                    user.Nick = matches.Groups[1].Value;
+                    user.Realname = matches.Groups[2].Value;
+                    user.Hostname = matches.Groups[3].Value;
+                }
 
                 return user;
             }
 
             catch (Exception ex)
             {
-                Cloud.Logger.Log(LogPriority.Debug, "Couldn't extract user info from hostmask: " + hostmask);
+                Cloud.Logger.Log(LogPriority.Error, "Couldn't extract user info from hostmask: " + hostmask);
                 return null;
             }
         }
