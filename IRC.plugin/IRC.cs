@@ -84,6 +84,8 @@ namespace IRC.plugin
                 Cloud.Logger.Log(LogPriority.Debug, "Retrieving channel modes...");
                 SendData("MODE", channel.Name);
 
+                //SendData("NAMES", channel.Name);
+
                 //SendData("PRIVMSG", channel.Name + " Test");
             }
 
@@ -233,15 +235,15 @@ namespace IRC.plugin
 
         private void onNames(string[] message)
         {
-            if (message[2] == channel.Name)
+            if (message[4] == channel.Name)
             {
-                for (int i = 3; i < message.Length; i++)
+                for (int i = 6; i < message.Length; i++)
                 {
-                    if (channel.Users.Exists(
+                    if (!(channel.Users.Exists(
                         delegate(User user)
                         {
                             return user.Nick == message[i].Substring(1);
-                        }))
+                        })))
                     {
                         channel.Users.Add(new User(message[i].Substring(1)));
                     }
@@ -398,7 +400,7 @@ namespace IRC.plugin
             {
                 User user = new User();
 
-                Match matches = Regex.Match(hostmask, @"^([A-Za-z0-9\-]+)!([A-Za-z0-9\-]+)\@([A-Za-z0-9\.\-]+)", RegexOptions.IgnoreCase);
+                Match matches = Regex.Match(hostmask, @"^([A-Za-z0-9\-]+)!([A-Za-z0-9\-\~]+)\@([A-Za-z0-9\.\-]+)", RegexOptions.IgnoreCase);
 
                 if (matches.Success == false)
                     throw new Exception();
