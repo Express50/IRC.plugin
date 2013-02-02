@@ -57,6 +57,10 @@ namespace IRC.plugin
         #endregion
 
         #region IRC Functions
+
+        /// <summary>
+        /// Try to connect to the IRC channel.
+        /// </summary>
         public void Connect()
         {
             try
@@ -96,6 +100,9 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Disconnect from the IRC channel and close all open streams.
+        /// </summary>
         private void Disconnect()
         {
             if (isConnected)
@@ -118,6 +125,9 @@ namespace IRC.plugin
                 client.Close();
         }
 
+        /// <summary>
+        /// Set the name of the connecting user.
+        /// </summary>
         private void Identify()
         {
             try
@@ -134,6 +144,9 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Listen for messages from the IRC server.
+        /// </summary>
         public void Listen()
         {
             while (isConnected)
@@ -143,6 +156,11 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Send a specific command to the IRC server.
+        /// </summary>
+        /// <param name="cmd">The primary command to send.</param>
+        /// <param name="param">Any extra parameters to send.</param>
         private void SendData(string cmd, string param = null)
         {
             if (param == null)
@@ -239,11 +257,7 @@ namespace IRC.plugin
             {
                 for (int i = 6; i < message.Length; i++)
                 {
-                    if (!(channel.Users.Exists(
-                        delegate(User user)
-                        {
-                            return user.Nick == message[i].Substring(1);
-                        })))
+                    if (!(channel.Users.Exists((user) => user.Nick == message[i].Substring(1))))
                     {
                         channel.Users.Add(new User(message[i].Substring(1)));
                     }
@@ -362,12 +376,18 @@ namespace IRC.plugin
             {
                 case "hi":
                 case "hello":
+
                     SendData("PRIVMSG", channel.Name + " Hey!");
+
                     break;
+
                 case "quit":
                     Disconnect();
+
                     break;
+
                 default:
+
                     break;
             }
         }
