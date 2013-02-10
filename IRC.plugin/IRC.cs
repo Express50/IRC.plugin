@@ -82,11 +82,11 @@ namespace IRC.plugin
 
                 Cloud.Logger.Log(LogPriority.Debug, "Successfully identified");
 
-                //Cloud.Logger.Log(LogPriority.Debug, "Joining channel...");
-                //SendData("JOIN", channel.Name);
+                Cloud.Logger.Log(LogPriority.Debug, "Joining channel...");
+                SendData("JOIN", channel.Name);
 
-                Cloud.Logger.Log(LogPriority.Debug, "Retrieving channel modes...");
-                SendData("MODE", channel.Name);
+                //Cloud.Logger.Log(LogPriority.Debug, "Retrieving channel modes...");
+                //SendData("MODE", channel.Name);
 
                 //SendData("NAMES", channel.Name);
 
@@ -188,15 +188,15 @@ namespace IRC.plugin
             string hostmask;
 
             //Parse ping
-            if (message[0] == "PING")
+            if (message[Constants.PING_INDEX] == "PING")
             {
-                SendData("PONG", message[1]);
+                SendData("PONG", message[Constants.PINGER_INDEX]);
                 return;
             }
 
             //Parse numerics
             int numeric;
-            if (int.TryParse(message[1], out numeric))
+            if (int.TryParse(message[Constants.NUMERIC_INDEX], out numeric))
             {
                 switch (numeric)
                 {
@@ -204,9 +204,9 @@ namespace IRC.plugin
                         onNames(message);
                         break;
                     case (int)Numerics.RPL_CHANNELMODEIS:
-                        if (message[3] == channel.Name)
+                        if (message[Constants.NUMERIC_CHANNEL_NAME_INDEX] == channel.Name)
                         {
-                            onChannelModeInit(message[4]);
+                            onChannelModeInit(message[Constants.NUMERIC_CHANNEL_MODES_INDEX]);
                         }
                         break;
                     default:
@@ -216,19 +216,20 @@ namespace IRC.plugin
             }
 
             //Parse command
-            else if (message[0].StartsWith(":"))
+            else if (message[Constants.SENDER_INDEX].StartsWith(":"))
             {
+                //Remove useless chars
                 for (int i = 0; i < message.Length; i++)
                 {
                     if (message[i].StartsWith(":"))
                         message[i] = message[i].Remove(0, 1);
                 }
 
-                hostmask = message[0].Substring(message[0].IndexOf(':') + 1);
+                hostmask = message[Constants.SENDER_INDEX];
 
                 if (hostmask.Contains('@') && hostmask.Contains('!'))
                 {
-                    switch (message[1])
+                    switch (message[Constants.IRC_COMMAND_INDEX])
                     {
                         case "PRIVMSG":
                             onPrivMsg(hostmask, message);
@@ -261,13 +262,18 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onNames(string[] message)
         {
-            if (message[4] == channel.Name)
+            if (message[Constants.NAMES_CHANNEL_NAME_INDEX] == channel.Name)
             {
-                for (int i = 6; i < message.Length; i++)
+                for (int i = Constants.NAMES_CHANNEL_USERS_START_INDEX; i < message.Length; i++)
                 {
-                    if (!(channel.Users.Exists((user) => user.Nick == message[i].Substring(1))))
+                    if (message[i].StartsWith("+") || message[i].StartsWith("%") || message[i].StartsWith("@") || message[i].StartsWith("~"))
                     {
-                        channel.Users.Add(new User(message[i].Substring(1)));
+                        //Implement initialization of modes here...
+                        message[i] = message[i].Remove(0, 1);
+                        if (!(channel.Users.Exists((user) => user.Nick == message[i])))
+                        {
+                            channel.Users.Add(new User(message[i]));
+                        }
                     }
                 }
             }
@@ -315,6 +321,11 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onMode(string hostmask, string[] message)
         {
+            //User mode:
+            //hostmask MODE channel modes target
+
+
+
             User sender = ExtractUserInfo(hostmask);
 
             //Split into onChannelMode() and onUserMode()
