@@ -31,9 +31,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="EECloud.API, Version=0.9.21.0, Culture=neutral, processorArchitecture=x86">
+    <Reference Include="EECloud.API, Version=0.9.22.0, Culture=neutral, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\EECloud\EECloud.API.dll</HintPath>
+      <HintPath>..\EECloud.API.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
