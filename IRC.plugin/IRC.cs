@@ -449,28 +449,6 @@ namespace IRC.plugin
             }
         }
 
-        /*private User GetUserByNick(string nick)
-        {
-            for (int i = 0; i < channel.Users.Count; i++)
-            {
-                if (channel.Users[i].Nick == nick)
-                    return channel.Users[i];
-            }
-
-            return null;
-        }
-
-        private User GetUserByHostname(string hostname)
-        {
-            for (int i = 0; i < channel.Users.Count; i++)
-            {
-                if (channel.Users[i].Hostname == hostname)
-                    return channel.Users[i];
-            }
-
-            return null;
-        }*/
-
         /// <summary>
         /// Initializes a User instance based on the given hostmask.
         /// </summary>
