@@ -22,5 +22,12 @@ namespace IRC.plugin.Utils
         public const int NAMES_CHANNEL_NAME_INDEX = 4;
         public const int NAMES_CHANNEL_USERS_START_INDEX = 6;
 
+        public const int PRIVMSG_TARGET_INDEX = 2;
+        public const int PRIVMSG_MESSAGE_INDEX = 3;
+
+        public const int MODE_CHANNEL_NAME_INDEX = 2;
+        public const int MODE_MODES_INDEX = 3;
+        public const int MODE_TARGET_USER_INDEX = 4;
+
     }
 }

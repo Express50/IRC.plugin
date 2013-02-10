@@ -286,12 +286,21 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onPrivMsg(string hostmask, string[] message)
         {
-            User sender = ExtractUserInfo(hostmask);
-            //message[3] = message[3].Remove(0, 1); //remove ':'
+            //Channel Privmsg
+            //hostmask PRIVMSG channel message
 
-            if (message[2] == channel.Name && message[3].StartsWith("!"))
+            //Privmsg
+            //hostmask PRIVMSG [bot's nick] message
+
+
+            User sender = ExtractUserInfo(hostmask);
+
+            if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
             {
-                ExecuteCommand(message[3]);
+                if (message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
+                {
+                    ExecuteCommand(message[Constants.PRIVMSG_MESSAGE_INDEX]);
+                }
             }
         }
 
@@ -324,6 +333,8 @@ namespace IRC.plugin
             //User mode:
             //hostmask MODE channel modes target
 
+            //Channel mode:
+            //hostmask MODE channel modes
 
 
             User sender = ExtractUserInfo(hostmask);
@@ -335,14 +346,17 @@ namespace IRC.plugin
                 return;
             }
 
-            else if (message[3].Contains('#') && message[3] == channel.Name) //channel mode
+            else if (message[Constants.MODE_CHANNEL_NAME_INDEX] == channel.Name) //Ignore it unless it came from the designated channel
             {
-                onChannelMode(sender, message[4]);
-            }
+                if (string.IsNullOrEmpty(message[Constants.MODE_TARGET_USER_INDEX])) //channel mode
+                {
+                    onChannelMode(sender, message[Constants.MODE_MODES_INDEX]);
+                }
 
-            else //user mode
-            {
-                onUserMode(sender, channel.Users.GetUser(message[4]), message[3]);
+                else //user mode
+                {
+                    onUserMode(sender, channel.Users.GetUser(message[Constants.MODE_TARGET_USER_INDEX]), message[Constants.MODE_MODES_INDEX]);
+                }
             }
         }
 
@@ -389,7 +403,32 @@ namespace IRC.plugin
         /// <param name="modes">The modes set.</param>
         private void onUserMode(User sender, User target, string modes)
         {
+            bool addMode = false;
+            for (int i = 0; i < modes.Length; i++)
+            {
+                if (modes[i] == '+') //switch to adding modes
+                {
+                    addMode = true;
+                }
 
+                else if (modes[i] == '-') //switch to removing modes
+                {
+                    addMode = false;
+                }
+
+                else
+                {
+                    if (addMode == true && !(target.Modes.Contains(modes[i])))
+                    {
+                        target.Modes.Insert(target.Modes.Length, modes[i].ToString()); //insert new mode
+                    }
+
+                    else if (addMode == false && target.Modes.Contains(modes[i]))
+                    {
+                        target.Modes.Remove(target.Modes.IndexOf(modes[i]), 1); //remove existing mode
+                    }
+                }
+            }
         }
 
         /// <summary>
