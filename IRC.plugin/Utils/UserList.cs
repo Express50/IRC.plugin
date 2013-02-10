@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace IRC.plugin.Utils
 {
-    class UserList : List<User>
+    public class UserList : List<User>
     {
         /// <summary>
         /// Gets a user from the list by their nick.
