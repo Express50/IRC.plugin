@@ -176,6 +176,10 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Parse data sent by the IRC server.
+        /// </summary>
+        /// <param name="data">The line of data to parse.</param>
         private void ParseReceivedData(string data)
         {
             Cloud.Logger.Log(LogPriority.Debug, data);
@@ -251,6 +255,10 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Called when you receive a NAMES message from the IRC server.
+        /// </summary>
+        /// <param name="message">The message sent.</param>
         private void onNames(string[] message)
         {
             if (message[4] == channel.Name)
@@ -265,6 +273,11 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Called when you receive a PRIVMSG message from the IRC server.
+        /// </summary>
+        /// <param name="hostmask">The hostmask of the sender.</param>
+        /// <param name="message">The message sent.</param>
         private void onPrivMsg(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
@@ -276,16 +289,30 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Called when you receive a NOTICE message from the IRC server.
+        /// </summary>
+        /// <param name="hostmask">The hostmask of the sender.</param>
+        /// <param name="message">The message sent.</param>
         private void onNotice(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
         }
 
+        /// <summary>
+        /// Called on initial channel MODE message when you join a channel.
+        /// </summary>
+        /// <param name="modes">The modes set on the channel.</param>
         private void onChannelModeInit(string modes)
         {
             channel.Modes = modes.Remove(0, 1); //remove '+' and set modes
         }
 
+        /// <summary>
+        /// Called when you receive a MODE message from the IRC server.
+        /// </summary>
+        /// <param name="hostmask">The hostmask of the sender.</param>
+        /// <param name="message">The message sent.</param>
         private void onMode(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
@@ -308,6 +335,11 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Called when you receive a MODE message regarding a channel.
+        /// </summary>
+        /// <param name="sender">The user that set the modes.</param>
+        /// <param name="modes">The modes set.</param>
         private void onChannelMode(User sender, string modes)
         {
             bool addMode = false;
@@ -338,16 +370,32 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Called when you receive a MODE message regarding a user.
+        /// </summary>
+        /// <param name="sender">The user that set the modes.</param>
+        /// <param name="target">The target user.</param>
+        /// <param name="modes">The modes set.</param>
         private void onUserMode(User sender, User target, string modes)
         {
 
         }
 
+        /// <summary>
+        /// Called when you receive a KICK message from the IRC server.
+        /// </summary>
+        /// <param name="hostmask">The hostmask of the sender.</param>
+        /// <param name="message">The message sent.</param>
         private void onKick(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
         }
 
+        /// <summary>
+        /// Called when you receive a JOIN message from the IRC server.
+        /// </summary>
+        /// <param name="hostmask">The hostmask of the sender.</param>
+        /// <param name="message">The message sent.</param>
         private void onJoin(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
@@ -355,6 +403,11 @@ namespace IRC.plugin
             channel.Users.Add(sender);
         }
 
+        /// <summary>
+        /// Called when you receive a PART message from the IRC server.
+        /// </summary>
+        /// <param name="hostmask">The hostmask of the sender.</param>
+        /// <param name="message">The message sent.</param>
         private void onPart(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
@@ -365,6 +418,10 @@ namespace IRC.plugin
             }
         }
 
+        /// <summary>
+        /// Execute a command from PRIVMSG or NOTICE if prefixed by the command char.
+        /// </summary>
+        /// <param name="command">The command to execute.</param>
         private void ExecuteCommand(string command)
         {
             command = command.Remove(0, 1); //remove cmd char
@@ -414,6 +471,11 @@ namespace IRC.plugin
             return null;
         }
 
+        /// <summary>
+        /// Initializes a User instance based on the given hostmask.
+        /// </summary>
+        /// <param name="hostmask">The hostmask of the user.</param>
+        /// <returns>User instance with the information from the hostmask.</returns>
         private User ExtractUserInfo(string hostmask)
         {
             try
