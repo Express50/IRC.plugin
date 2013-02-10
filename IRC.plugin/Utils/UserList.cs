@@ -8,7 +8,8 @@ namespace IRC.plugin.Utils
     {
         public User GetUser(string info)
         {
-            User user = GetByNick(info);
+            User user = new User();
+            user = GetByNick(info);
 
             if (user != null)
                 return user;

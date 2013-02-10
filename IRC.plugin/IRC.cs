@@ -76,26 +76,18 @@ namespace IRC.plugin
 
                 ListenThread.Start();
 
-                Cloud.Logger.Log(LogPriority.Debug, "Successfully connected");
+                Cloud.Logger.Log(LogPriority.Info, "Successfully connected");
 
                 Identify();
 
-                Cloud.Logger.Log(LogPriority.Debug, "Successfully identified");
+                Cloud.Logger.Log(LogPriority.Info, "Successfully identified");
 
-                Cloud.Logger.Log(LogPriority.Debug, "Joining channel...");
-                SendData("JOIN", channel.Name);
-
-                //Cloud.Logger.Log(LogPriority.Debug, "Retrieving channel modes...");
-                //SendData("MODE", channel.Name);
-
-                //SendData("NAMES", channel.Name);
-
-                //SendData("PRIVMSG", channel.Name + " Test");
+                JoinChannel();
             }
 
             catch (Exception ex)
             {
-                Cloud.Logger.Log(LogPriority.Debug, "Failed to connect to irc server");
+                Cloud.Logger.Log(LogPriority.Error, "Failed to connect to irc server");
                 Cloud.Logger.Log(LogPriority.Debug, ex.Message);
             }
         }
@@ -141,6 +133,24 @@ namespace IRC.plugin
             catch (Exception ex)
             {
                 Cloud.Logger.Log(LogPriority.Debug, "Failed to identify");
+            }
+        }
+
+        /// <summary>
+        /// Join the designated channel
+        /// </summary>
+        private void JoinChannel()
+        {
+            try
+            {
+                Cloud.Logger.Log(LogPriority.Info, "Joining channel...");
+                SendData("JOIN", channel.Name);
+            }
+
+            catch (Exception ex)
+            {
+                Cloud.Logger.Log(LogPriority.Error, "Couldn't join channel");
+                Cloud.Logger.Log(LogPriority.Debug, ex.Message);
             }
         }
 
@@ -270,6 +280,14 @@ namespace IRC.plugin
                     {
                         //Implement initialization of modes here...
                         message[i] = message[i].Remove(0, 1);
+                        if (!(channel.Users.Exists((user) => user.Nick == message[i])))
+                        {
+                            channel.Users.Add(new User(message[i]));
+                        }
+                    }
+
+                    else
+                    {
                         if (!(channel.Users.Exists((user) => user.Nick == message[i])))
                         {
                             channel.Users.Add(new User(message[i]));
@@ -438,7 +456,19 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onKick(string hostmask, string[] message)
         {
+            //Kick someone
+            //hostmask KICK channel target kickmessage
             User sender = ExtractUserInfo(hostmask);
+
+            if (channel.Users.Contains(channel.Users.GetUser(message[Constants.KICK_TARGET_USER_INDEX])))
+            {
+                channel.Users.Remove(channel.Users.GetUser(message[Constants.KICK_TARGET_USER_INDEX]));
+
+                if (message[Constants.KICK_TARGET_USER_INDEX] == nick)
+                {
+                    JoinChannel();
+                }
+            }
         }
 
         /// <summary>

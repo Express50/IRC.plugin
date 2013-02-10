@@ -29,5 +29,7 @@ namespace IRC.plugin.Utils
         public const int MODE_MODES_INDEX = 3;
         public const int MODE_TARGET_USER_INDEX = 4;
 
+        public const int KICK_TARGET_USER_INDEX = 3;
+
     }
 }
