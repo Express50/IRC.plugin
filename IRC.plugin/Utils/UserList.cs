@@ -6,6 +6,18 @@ namespace IRC.plugin.Utils
 {
     public class UserList : List<User>
     {
+        public User GetUser(string info)
+        {
+            User user = GetByNick(info);
+
+            if (user != null)
+                return user;
+
+            else
+                user = GetByHostname(info);
+                return user;
+
+        }
         /// <summary>
         /// Gets a user from the list by their nick.
         /// </summary>
@@ -13,7 +25,7 @@ namespace IRC.plugin.Utils
         /// <returns>The User object if it finds one, null if it doesn't.</returns>
         public User GetByNick(string nick)
         {
-            return this.FirstOrDefault(((user) => user.Nick == nick));
+            return this.Where(user => user.Nick.Equals(nick, StringComparison.InvariantCulture)).FirstOrDefault(null);
         }
 
         /// <summary>
@@ -23,7 +35,7 @@ namespace IRC.plugin.Utils
         /// <returns>The User object if it finds one, null if it doesn't.</returns>
         public User GetByHostname(string hostname)
         {
-            return this.FirstOrDefault(((user) => user.Hostname == hostname));
+            return this.Where(user => user.Hostname.Equals(hostname, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault(null);
         }
     }
 }

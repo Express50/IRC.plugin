@@ -331,7 +331,7 @@ namespace IRC.plugin
 
             else //user mode
             {
-                onUserMode(sender, GetUserByNick(message[4]), message[3]);
+                onUserMode(sender, channel.Users.GetUser(message[4]), message[3]);
             }
         }
 
@@ -449,7 +449,7 @@ namespace IRC.plugin
             }
         }
 
-        private User GetUserByNick(string nick)
+        /*private User GetUserByNick(string nick)
         {
             for (int i = 0; i < channel.Users.Count; i++)
             {
@@ -469,7 +469,7 @@ namespace IRC.plugin
             }
 
             return null;
-        }
+        }*/
 
         /// <summary>
         /// Initializes a User instance based on the given hostmask.
