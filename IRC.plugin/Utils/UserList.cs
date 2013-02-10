@@ -25,7 +25,7 @@ namespace IRC.plugin.Utils
         /// <returns>The User object if it finds one, null if it doesn't.</returns>
         public User GetByNick(string nick)
         {
-            return this.Where(user => user.Nick.Equals(nick, StringComparison.InvariantCulture)).FirstOrDefault(null);
+            return this.Where(user => user.Nick.Equals(nick, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault(null);
         }
 
         /// <summary>
