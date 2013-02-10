@@ -450,7 +450,10 @@ namespace IRC.plugin
         {
             User sender = ExtractUserInfo(hostmask);
 
-            channel.Users.Add(sender);
+            if (!(channel.Users.Contains(sender)))
+            {
+                channel.Users.Add(sender);
+            }
         }
 
         /// <summary>
