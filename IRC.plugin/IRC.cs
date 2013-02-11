@@ -33,10 +33,13 @@ namespace IRC.plugin
 
         public bool isConnected = false;
 
+        Parts.Commands Commands;
+
         #region EECloud
         protected override void OnConnect()
         {
             Cloud.Logger.Log(LogPriority.Debug, "Connected");
+            CommandManager.Load(this);
             this.Connect();
         }
 
@@ -47,6 +50,7 @@ namespace IRC.plugin
 
         protected override void OnEnable()
         {
+            Commands = EnablePart<Parts.Commands>();
             Cloud.Logger.Log(LogPriority.Debug, "Enabled");
             server = "irc.rizon.net";
             port = 6667;
@@ -329,7 +333,7 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onNotice(string hostmask, string[] message)
         {
-            User sender = ExtractUserInfo(hostmask);
+            //Ignore NOTICES for the time being
         }
 
         /// <summary>
@@ -507,28 +511,30 @@ namespace IRC.plugin
         /// <param name="command">The command to execute.</param>
         private void ExecuteCommand(string command)
         {
-            command = command.Remove(0, 1); //remove cmd char
+            Player player = null;
             command.ToLower();
 
             string[] cmdParts = command.Split(' ');
 
-            switch (cmdParts[0])
+            try
             {
-                case "hi":
-                case "hello":
+                switch (cmdParts[0])
+                {
+                    case "!quit":
+                        Disconnect();
 
-                    SendData("PRIVMSG", channel.Name + " Hey!");
+                        break;
 
-                    break;
+                    default:
+                        //CommandManager.InvokeCommand(player, command, EECloud.API.Group.Operator); --Throws exception
+                        break;
+                }
+            }
 
-                case "quit":
-                    Disconnect();
-
-                    break;
-
-                default:
-
-                    break;
+            catch (Exception ex)
+            {
+                Cloud.Logger.Log(LogPriority.Error, "Failed to execute command");
+                Cloud.Logger.LogEx(ex);
             }
         }
 

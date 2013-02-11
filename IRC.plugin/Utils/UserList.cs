@@ -26,7 +26,15 @@ namespace IRC.plugin.Utils
         /// <returns>The User object if it finds one, null if it doesn't.</returns>
         public User GetByNick(string nick)
         {
-            return this.Where(user => user.Nick.Equals(nick, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault(null);
+            try
+            {
+                return this.Where(user => user.Nick.Equals(nick, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault(null);
+            }
+
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -36,7 +44,15 @@ namespace IRC.plugin.Utils
         /// <returns>The User object if it finds one, null if it doesn't.</returns>
         public User GetByHostname(string hostname)
         {
-            return this.Where(user => user.Hostname.Equals(hostname, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault(null);
+            try
+            {
+                return this.Where(user => user.Hostname.Equals(hostname, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault(null);
+            }
+
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
     }
 }
