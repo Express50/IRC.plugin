@@ -28,7 +28,7 @@ namespace IRC.plugin.Utils
         {
             try
             {
-                return this.Where(user => user.Nick.Equals(nick, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault(null);
+                return this.FirstOrDefault(user => user.Nick.Equals(nick, StringComparison.InvariantCultureIgnoreCase));
             }
 
             catch (Exception ex)
@@ -46,7 +46,7 @@ namespace IRC.plugin.Utils
         {
             try
             {
-                return this.Where(user => user.Hostname.Equals(hostname, StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault(null);
+                return this.FirstOrDefault(user => user.Hostname.Equals(hostname, StringComparison.InvariantCultureIgnoreCase));
             }
 
             catch (Exception ex)

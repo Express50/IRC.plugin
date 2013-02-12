@@ -14,8 +14,13 @@ namespace IRC.plugin.Utils
         public const int SENDER_INDEX = 0;
 
         public const int NUMERIC_INDEX = 1;
-        public const int NUMERIC_CHANNEL_NAME_INDEX = 3;
-        public const int NUMERIC_CHANNEL_MODES_INDEX = 4;
+        public const int RPLCHANNELMODEIS_CHANNEL_NAME_INDEX = 3;
+        public const int RPLCHANNELMODEIS_CHANNEL_MODES_INDEX = 4;
+
+        public const int RPLWHOREPLY_CHANNEL_NAME_INDEX = 3;
+        public const int RPLWHOREPLY_REALNAME_INDEX = 4;
+        public const int RPLWHOREPLY_HOSTNAME_INDEX = 5;
+        public const int RPLWHOREPLY_NICK_INDEX = 7;
 
         public const int IRC_COMMAND_INDEX = 1;
 

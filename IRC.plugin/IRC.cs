@@ -87,6 +87,8 @@ namespace IRC.plugin
                 Cloud.Logger.Log(LogPriority.Info, "Successfully identified");
 
                 JoinChannel();
+
+                SendData("WHO", channel.Name);
             }
 
             catch (Exception ex)
@@ -217,12 +219,21 @@ namespace IRC.plugin
                     case (int)Numerics.RPL_NAMREPLY:
                         onNames(message);
                         break;
+
                     case (int)Numerics.RPL_CHANNELMODEIS:
-                        if (message[Constants.NUMERIC_CHANNEL_NAME_INDEX] == channel.Name)
+                        if (message[Constants.RPLCHANNELMODEIS_CHANNEL_NAME_INDEX] == channel.Name)
                         {
-                            onChannelModeInit(message[Constants.NUMERIC_CHANNEL_MODES_INDEX]);
+                            onChannelModeInit(message[Constants.RPLCHANNELMODEIS_CHANNEL_MODES_INDEX]);
                         }
                         break;
+
+                    case (int)Numerics.RPL_WHOREPLY:
+                        if (message[Constants.RPLWHOREPLY_CHANNEL_NAME_INDEX] == channel.Name)
+                        {
+                            onWho(message);
+                        }
+                        break;
+
                     default:
                         break;
                 }
@@ -267,6 +278,22 @@ namespace IRC.plugin
                             break;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Called when you receive a WHO reply message from the IRC server.
+        /// </summary>
+        /// <param name="message">The message sent.</param>
+        private void onWho(string[] message)
+        {
+            //Reply value:
+            //channel realname hostname server[*] nick flags hopcount info
+
+            if (channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]) != null)
+            {
+                channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Realname = message[Constants.RPLWHOREPLY_REALNAME_INDEX]; //Set the realname
+                channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Hostname = message[Constants.RPLWHOREPLY_HOSTNAME_INDEX]; //Set the hostname
             }
         }
 
@@ -526,7 +553,7 @@ namespace IRC.plugin
                         break;
 
                     default:
-                        //CommandManager.InvokeCommand(player, command, EECloud.API.Group.Operator); --Throws exception
+                        //CommandManager.InvokeCommand(player, command, EECloud.API.Group.Moderator); //--Throws exception
                         break;
                 }
             }
