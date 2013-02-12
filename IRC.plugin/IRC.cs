@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Reflection;
 using EECloud.API;
 using IRC.plugin.Utils;
 using IRC.plugin.Parts;
@@ -183,12 +184,14 @@ namespace IRC.plugin
             {
                 writer.WriteLine(cmd);
                 writer.Flush();
+                Cloud.Logger.Log(LogPriority.Debug, "send: " + cmd + " " + param);
             }
 
             else
             {
                 writer.WriteLine(cmd + " " + param);
                 writer.Flush();
+                Cloud.Logger.Log(LogPriority.Debug, "send: " + cmd + " " + param);
             }
         }
 
@@ -344,7 +347,12 @@ namespace IRC.plugin
 
             User sender = ExtractUserInfo(hostmask);
 
-            if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
+            if (sender.Hostname == "ctcp-scanner.rizon.net")
+            {
+                SendData("NOTICE", sender.Nick + " IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version);
+            }
+
+            else if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
             {
                 if (message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
                 {
@@ -533,7 +541,7 @@ namespace IRC.plugin
         }
 
         /// <summary>
-        /// Execute a command from PRIVMSG or NOTICE if prefixed by the command char.
+        /// Execute a command from PRIVMSG if prefixed by the command char.
         /// </summary>
         /// <param name="command">The command to execute.</param>
         private void ExecuteCommand(string command)
