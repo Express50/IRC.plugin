@@ -50,6 +50,7 @@
     <Compile Include="Utils\Channel.cs" />
     <Compile Include="Utils\Constants.cs" />
     <Compile Include="Utils\Numerics.cs" />
+    <Compile Include="Utils\Rank.cs" />
     <Compile Include="Utils\User.cs" />
     <Compile Include="Utils\UserList.cs" />
   </ItemGroup>

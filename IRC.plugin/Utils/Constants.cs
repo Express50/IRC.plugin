@@ -21,6 +21,7 @@ namespace IRC.plugin.Utils
         public const int RPLWHOREPLY_REALNAME_INDEX = 4;
         public const int RPLWHOREPLY_HOSTNAME_INDEX = 5;
         public const int RPLWHOREPLY_NICK_INDEX = 7;
+        public const int RPLWHOREPLY_FLAGS_INDEX = 8;
 
         public const int IRC_COMMAND_INDEX = 1;
 

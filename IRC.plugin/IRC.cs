@@ -292,11 +292,43 @@ namespace IRC.plugin
         {
             //Reply value:
             //channel realname hostname server[*] nick flags hopcount info
+            //3
 
             if (channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]) != null)
             {
                 channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Realname = message[Constants.RPLWHOREPLY_REALNAME_INDEX]; //Set the realname
                 channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Hostname = message[Constants.RPLWHOREPLY_HOSTNAME_INDEX]; //Set the hostname
+
+                Match flagMatch = Regex.Match(message[Constants.RPLWHOREPLY_FLAGS_INDEX], @"([\+\%\@\&\~])");
+
+                if (flagMatch.Success)
+                {
+                    switch (flagMatch.Groups[1].ToString())
+                    {
+                        case "+": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.Voice;
+                            break;
+
+                        case "%": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.HalfOp;
+                            break;
+
+                        case "@": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.FullOp;
+                            break;
+
+                        case "&": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.Admin;
+                            break;
+
+                        case "~": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.Owner;
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+
+                else
+                {
+                    channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.None;
+                }
             }
         }
 
@@ -523,6 +555,8 @@ namespace IRC.plugin
             {
                 channel.Users.Add(sender);
             }
+
+            SendData("WHO", channel.Name);
         }
 
         /// <summary>
