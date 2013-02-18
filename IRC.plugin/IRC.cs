@@ -39,9 +39,10 @@ namespace IRC.plugin
         #region EECloud
         protected override void OnConnect()
         {
-            Cloud.Logger.Log(LogPriority.Debug, "Connected");
             CommandManager.Load(this);
             this.Connect();
+
+            Cloud.Logger.Log(LogPriority.Debug, "Connected");
         }
 
         protected override void OnDisable()
@@ -52,12 +53,13 @@ namespace IRC.plugin
         protected override void OnEnable()
         {
             Commands = EnablePart<Parts.Commands>();
-            Cloud.Logger.Log(LogPriority.Debug, "Enabled");
             server = "irc.rizon.net";
             port = 6667;
             nick = "RunBot";
             channel = new Channel("#RunEE");
             ListenThread = new Thread(Listen);
+
+            Cloud.Logger.Log(LogPriority.Debug, "Enabled");
         }
         #endregion
 
@@ -581,7 +583,7 @@ namespace IRC.plugin
         private void ExecuteCommand(string command)
         {
             Player player = null;
-            command.ToLower();
+            command = command.Remove(0, 1).ToLower();
 
             string[] cmdParts = command.Split(' ');
 
@@ -589,13 +591,13 @@ namespace IRC.plugin
             {
                 switch (cmdParts[0])
                 {
-                    case "!quit":
+                    case "quit":
                         Disconnect();
 
                         break;
 
                     default:
-                        //CommandManager.InvokeCommand(player, command, EECloud.API.Group.Moderator); //--Throws exception
+                        CommandManager.InvokeCommand(player, command, EECloud.API.Group.Moderator); //Worked without '!'
                         break;
                 }
             }

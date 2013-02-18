@@ -33,7 +33,7 @@
   <ItemGroup>
     <Reference Include="EECloud.API, Version=0.9.22.0, Culture=neutral, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\EECloud.API.dll</HintPath>
+      <HintPath>..\..\..\eecloud\EECloud.API\bin\Debug\EECloud.API.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
