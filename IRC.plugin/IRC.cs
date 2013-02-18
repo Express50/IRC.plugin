@@ -72,7 +72,7 @@ namespace IRC.plugin
         {
             try
             {
-                Cloud.Logger.Log(LogPriority.Debug, "Attempting to establish a connection...");
+                Cloud.Logger.Log(LogPriority.Info, "Attempting to establish a connection...");
                 client = new TcpClient(server, port);
                 nstream = client.GetStream();
 
@@ -83,11 +83,7 @@ namespace IRC.plugin
 
                 ListenThread.Start();
 
-                Cloud.Logger.Log(LogPriority.Info, "Successfully connected");
-
                 Identify();
-
-                Cloud.Logger.Log(LogPriority.Info, "Successfully identified");
 
                 JoinChannel();
 
@@ -97,7 +93,7 @@ namespace IRC.plugin
             catch (Exception ex)
             {
                 Cloud.Logger.Log(LogPriority.Error, "Failed to connect to irc server");
-                Cloud.Logger.Log(LogPriority.Debug, ex.Message);
+                Cloud.Logger.LogEx(ex);
             }
         }
 
@@ -106,24 +102,36 @@ namespace IRC.plugin
         /// </summary>
         private void Disconnect()
         {
-            if (isConnected)
+            try
             {
-                SendData("QUIT");
+                Cloud.Logger.Log(LogPriority.Debug, "Disconnecting: closing all open streams...");
+
+                if (isConnected)
+                {
+                    SendData("QUIT");
+                }
+
+                ListenThread.Abort();
+
+                if (reader != null)
+                    reader.Close();
+
+                if (writer != null)
+                    writer.Close();
+
+                if (nstream != null)
+                    nstream.Close();
+
+                if (client != null)
+                    client.Close();
+
+                Cloud.Logger.Log(LogPriority.Info, "Disconnected from IRC server");
             }
 
-            ListenThread.Abort();
-
-            if (reader != null)
-                reader.Close();
-
-            if (writer != null)
-                writer.Close();
-
-            if (nstream != null)
-                nstream.Close();
-
-            if (client != null)
-                client.Close();
+            catch (Exception ex)
+            {
+                Cloud.Logger.LogEx(ex);
+            }
         }
 
         /// <summary>
@@ -133,7 +141,7 @@ namespace IRC.plugin
         {
             try
             {
-                Cloud.Logger.Log(LogPriority.Debug, "Attempting to identify");
+                Cloud.Logger.Log(LogPriority.Debug, "Attempting to identify connection...");
                 SendData("USER", nick + " - " + server + " :" + nick);
                 SendData("NICK", nick);
                 //SendData("NICKSERV", "IDENTIFY");
@@ -142,6 +150,8 @@ namespace IRC.plugin
             catch (Exception ex)
             {
                 Cloud.Logger.Log(LogPriority.Debug, "Failed to identify");
+                Cloud.Logger.LogEx(ex);
+                Disconnect();
             }
         }
 
@@ -159,7 +169,7 @@ namespace IRC.plugin
             catch (Exception ex)
             {
                 Cloud.Logger.Log(LogPriority.Error, "Couldn't join channel");
-                Cloud.Logger.Log(LogPriority.Debug, ex.Message);
+                Cloud.Logger.LogEx(ex);
             }
         }
 
@@ -171,7 +181,7 @@ namespace IRC.plugin
             while (isConnected)
             {
                 ParseReceivedData(reader.ReadLine());
-                Thread.Sleep(100);
+                Thread.Sleep(50);
             }
         }
 
@@ -182,18 +192,30 @@ namespace IRC.plugin
         /// <param name="param">Any extra parameters to send.</param>
         private void SendData(string cmd, string param = null)
         {
-            if (param == null)
+            try
             {
-                writer.WriteLine(cmd);
-                writer.Flush();
-                Cloud.Logger.Log(LogPriority.Debug, "send: " + cmd + " " + param);
+                if (param == null)
+                {
+                    writer.WriteLine(cmd);
+                    writer.Flush();
+
+                    Cloud.Logger.Log(LogPriority.Info, "[SEND] " + cmd + " " + param);
+                }
+
+                else
+                {
+                    writer.WriteLine(cmd + " " + param);
+                    writer.Flush();
+
+                    param.Replace("\001", "");
+                    Cloud.Logger.Log(LogPriority.Info, "[SEND] " + cmd + " " + param);
+                }
             }
 
-            else
+            catch (Exception ex)
             {
-                writer.WriteLine(cmd + " " + param);
-                writer.Flush();
-                Cloud.Logger.Log(LogPriority.Debug, "send: " + cmd + " " + param);
+                Cloud.Logger.Log(LogPriority.Error, "Failed to send data: '" + cmd + param + "'");
+                Cloud.Logger.LogEx(ex);
             }
         }
 
@@ -203,88 +225,107 @@ namespace IRC.plugin
         /// <param name="data">The line of data to parse.</param>
         private void ParseReceivedData(string data)
         {
-            Cloud.Logger.Log(LogPriority.Debug, data);
-            string[] message = data.Split(' ');
-
-            string hostmask;
-
-            //Parse ping
-            if (message[Constants.PING_INDEX] == "PING")
+            try
             {
-                SendData("PONG", message[Constants.PINGER_INDEX]);
-                return;
-            }
+                string[] message = data.Split(' ');
 
-            //Parse numerics
-            int numeric;
-            if (int.TryParse(message[Constants.NUMERIC_INDEX], out numeric))
-            {
-                switch (numeric)
+                string hostmask;
+
+                //Parse ping
+                if (message[Constants.PING_INDEX] == "PING")
                 {
-                    case (int)Numerics.RPL_NAMREPLY:
-                        onNames(message);
-                        break;
-
-                    case (int)Numerics.RPL_CHANNELMODEIS:
-                        if (message[Constants.RPLCHANNELMODEIS_CHANNEL_NAME_INDEX] == channel.Name)
-                        {
-                            onChannelModeInit(message[Constants.RPLCHANNELMODEIS_CHANNEL_MODES_INDEX]);
-                        }
-                        break;
-
-                    case (int)Numerics.RPL_WHOREPLY:
-                        if (message[Constants.RPLWHOREPLY_CHANNEL_NAME_INDEX] == channel.Name)
-                        {
-                            onWho(message);
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-                return;
-            }
-
-            //Parse command
-            else if (message[Constants.SENDER_INDEX].StartsWith(":"))
-            {
-                //Remove useless chars
-                for (int i = 0; i < message.Length; i++)
-                {
-                    if (message[i].StartsWith(":"))
-                        message[i] = message[i].Remove(0, 1);
+                    SendData("PONG", message[Constants.PINGER_INDEX]);
+                    return;
                 }
 
-                hostmask = message[Constants.SENDER_INDEX];
-
-                if (hostmask.Contains('@') && hostmask.Contains('!'))
+                //Parse numerics
+                int numeric;
+                if (int.TryParse(message[Constants.NUMERIC_INDEX], out numeric))
                 {
-                    switch (message[Constants.IRC_COMMAND_INDEX])
+                    switch (numeric)
                     {
-                        case "PRIVMSG":
-                            onPrivMsg(hostmask, message);
+                        case (int)Numerics.RPL_NAMREPLY:
+                            onNames(message);
                             break;
-                        case "NOTICE":
-                            onNotice(hostmask, message);
+
+                        case (int)Numerics.RPL_CHANNELMODEIS:
+                            if (message[Constants.RPLCHANNELMODEIS_CHANNEL_NAME_INDEX] == channel.Name)
+                            {
+                                onChannelModeInit(message[Constants.RPLCHANNELMODEIS_CHANNEL_MODES_INDEX]);
+                            }
                             break;
-                        case "MODE":
-                            onMode(hostmask, message);
+
+                        case (int)Numerics.RPL_WHOREPLY:
+                            if (message[Constants.RPLWHOREPLY_CHANNEL_NAME_INDEX] == channel.Name)
+                            {
+                                onWho(message);
+                            }
                             break;
-                        case "KICK":
-                            onKick(hostmask, message);
-                            break;
-                        case "JOIN":
-                            onJoin(hostmask, message);
-                            break;
-                        case "PART":
-                            onPart(hostmask, message);
-                            break;
+
                         default:
                             break;
                     }
+
+                    if (numeric != (int)Numerics.RPL_MOTD)
+                    {
+                        Cloud.Logger.Log(LogPriority.Info, data);
+                    }
+
+                    return;
+                }
+
+                //Parse command
+                else if (message[Constants.SENDER_INDEX].StartsWith(":"))
+                {
+                    Cloud.Logger.Log(LogPriority.Info, data);
+                    //Remove useless chars
+                    for (int i = 0; i < message.Length; i++)
+                    {
+                        if (message[i].StartsWith(":"))
+                            message[i] = message[i].Remove(0, 1);
+                    }
+
+                    hostmask = message[Constants.SENDER_INDEX];
+
+                    if (hostmask.Contains('@') && hostmask.Contains('!'))
+                    {
+                        switch (message[Constants.IRC_COMMAND_INDEX])
+                        {
+                            case "PRIVMSG":
+                                onPrivMsg(hostmask, message);
+                                break;
+                            case "NOTICE":
+                                onNotice(hostmask, message);
+                                break;
+                            case "MODE":
+                                onMode(hostmask, message);
+                                break;
+                            case "KICK":
+                                onKick(hostmask, message);
+                                break;
+                            case "JOIN":
+                                onJoin(hostmask, message);
+                                break;
+                            case "PART":
+                                onPart(hostmask, message);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
                 }
             }
+
+            catch (Exception ex)
+            {
+                Cloud.Logger.Log(LogPriority.Error, "Failed to parse data: '" + data + "'");
+                Cloud.Logger.LogEx(ex);
+            }
         }
+
+        #endregion
+
+        #region Message Handlers
 
         /// <summary>
         /// Called when you receive a WHO reply message from the IRC server.
@@ -372,25 +413,24 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onPrivMsg(string hostmask, string[] message)
         {
-            //Channel Privmsg
-            //hostmask PRIVMSG channel message
-
-            //Privmsg
-            //hostmask PRIVMSG [bot's nick] message
-
-
             User sender = ExtractUserInfo(hostmask);
 
             if (sender.Hostname == "ctcp-scanner.rizon.net")
             {
-                SendData("NOTICE", sender.Nick + " IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version);
+                SendData("NOTICE", sender.Nick + "\001VERSION " + " IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version + "\001");
             }
 
             else if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
             {
                 if (message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
                 {
-                    ExecuteCommand(message[Constants.PRIVMSG_MESSAGE_INDEX]);
+                    string command = "";
+                    for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
+                    {
+                        command += message[i] + " ";
+                    }
+
+                    ExecuteCommand(command);
                 }
             }
         }
@@ -402,7 +442,7 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onNotice(string hostmask, string[] message)
         {
-            //Ignore NOTICES for the time being
+
         }
 
         /// <summary>
@@ -421,13 +461,6 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onMode(string hostmask, string[] message)
         {
-            //User mode:
-            //hostmask MODE channel modes target
-
-            //Channel mode:
-            //hostmask MODE channel modes
-
-
             User sender = ExtractUserInfo(hostmask);
 
             //Split into onChannelMode() and onUserMode()
@@ -529,8 +562,6 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onKick(string hostmask, string[] message)
         {
-            //Kick someone
-            //hostmask KICK channel target kickmessage
             User sender = ExtractUserInfo(hostmask);
 
             if (channel.Users.Contains(channel.Users.GetUser(message[Constants.KICK_TARGET_USER_INDEX])))
@@ -575,7 +606,9 @@ namespace IRC.plugin
                 channel.Users.Remove(sender);
             }
         }
+        #endregion
 
+        #region Helper Functions
         /// <summary>
         /// Execute a command from PRIVMSG if prefixed by the command char.
         /// </summary>
@@ -583,7 +616,7 @@ namespace IRC.plugin
         private void ExecuteCommand(string command)
         {
             Player player = null;
-            command = command.Remove(0, 1).ToLower();
+            command = command.Remove(0, 1).ToLower().Trim(' ', '\n', '\r');
 
             string[] cmdParts = command.Split(' ');
 
@@ -591,9 +624,9 @@ namespace IRC.plugin
             {
                 switch (cmdParts[0])
                 {
-                    case "quit":
-                        Disconnect();
-
+                    case "irc":
+                        //Handle irc commands
+                        ExecuteIRCCommand(cmdParts);
                         break;
 
                     default:
@@ -605,6 +638,36 @@ namespace IRC.plugin
             catch (Exception ex)
             {
                 Cloud.Logger.Log(LogPriority.Error, "Failed to execute command");
+                Cloud.Logger.LogEx(ex);
+            }
+        }
+
+        /// <summary>
+        /// Executes any IRC related command
+        /// </summary>
+        /// <param name="cmdParts">Command parts</param>
+        private void ExecuteIRCCommand(string[] cmdParts)
+        {
+            try
+            {
+                switch (cmdParts[1])
+                {
+                    case "quit":
+                        Disconnect();
+                        break;
+
+                    case "version":
+                        SendData("PRIVMSG", channel.Name + " IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            catch (Exception ex)
+            {
+                Cloud.Logger.Log(LogPriority.Error, "Couldn't execute IRC command");
                 Cloud.Logger.LogEx(ex);
             }
         }
@@ -638,6 +701,7 @@ namespace IRC.plugin
             catch (Exception ex)
             {
                 Cloud.Logger.Log(LogPriority.Error, "Couldn't extract user info from hostmask: " + hostmask);
+                Cloud.Logger.LogEx(ex);
                 return null;
             }
         }
