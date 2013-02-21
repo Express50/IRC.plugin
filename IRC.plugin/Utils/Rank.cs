@@ -10,14 +10,14 @@ namespace IRC.plugin.Utils
     {
         None = 0,
 
-        Voice = 1,
+        Voice = 0,
 
-        HalfOp = 2,
+        HalfOp = 100,
 
-        FullOp = 3,
+        FullOp = 200,
 
-        Admin = 4,
+        Admin = 300,
 
-        Owner = 5
+        Owner = 400
     }
 }

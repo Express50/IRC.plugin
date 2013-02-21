@@ -430,7 +430,7 @@ namespace IRC.plugin
                         command += message[i] + " ";
                     }
 
-                    ExecuteCommand(command);
+                    ExecuteCommand(command, sender);
                 }
             }
         }
@@ -613,9 +613,8 @@ namespace IRC.plugin
         /// Execute a command from PRIVMSG if prefixed by the command char.
         /// </summary>
         /// <param name="command">The command to execute.</param>
-        private void ExecuteCommand(string command)
+        private void ExecuteCommand(string command, User sender)
         {
-            Player player = null;
             command = command.Remove(0, 1).ToLower().Trim(' ', '\n', '\r');
 
             string[] cmdParts = command.Split(' ');
@@ -630,7 +629,7 @@ namespace IRC.plugin
                         break;
 
                     default:
-                        CommandManager.InvokeCommand(player, command, EECloud.API.Group.Moderator); //Worked without '!'
+                        CommandManager.InvokeCommand(null, command, (EECloud.API.Group)sender.Rank); //Worked without '!'
                         break;
                 }
             }
