@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using System.Reflection;
 using EECloud.API;
 using IRC.plugin.Utils;
-using IRC.plugin.Parts;
 using System.Threading;
 
 namespace IRC.plugin
@@ -16,9 +15,11 @@ namespace IRC.plugin
            Category = PluginCategory.Admin,
            ChatName = "IRC",
            Description = "IRC interface for executing commands in your EECloud plugin.",
-           Version = "0.0.1")]
+           Version = "1.0.0")]
     public class IRC : Plugin<Player, IRC>
     {
+        private string version = "1.0.0";
+
         private string server;
         private int port;
         private string nick;
@@ -33,8 +34,6 @@ namespace IRC.plugin
         private Thread ListenThread;
 
         public bool isConnected = false;
-
-        Parts.Commands Commands;
 
         #region EECloud
         protected override void OnConnect()
@@ -52,7 +51,6 @@ namespace IRC.plugin
 
         protected override void OnEnable()
         {
-            Commands = EnablePart<Parts.Commands>();
             server = "irc.rizon.net";
             port = 6667;
             nick = "RunBot";
@@ -61,6 +59,16 @@ namespace IRC.plugin
 
             Cloud.Logger.Log(LogPriority.Debug, "Enabled");
         }
+        #endregion
+
+        #region EE to IRC Commands
+
+        [Command("ircnotify", EECloud.API.Group.Trusted, Aliases = new string[] { "notify" })]
+        public void CommandIRCNotify(ICommand<Player> cmd, string target, string message)
+        {
+            SendData("PRIVMSG", channel.Name + " :[" + cmd.Sender.Username.ToUpper() + "] @" + target + ": " + message);
+        }
+
         #endregion
 
         #region IRC Functions
@@ -417,7 +425,7 @@ namespace IRC.plugin
 
             if (sender.Hostname == "ctcp-scanner.rizon.net")
             {
-                SendData("NOTICE", sender.Nick + "\001VERSION " + " IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version + "\001");
+                SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
             }
 
             else if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
@@ -656,7 +664,7 @@ namespace IRC.plugin
                         break;
 
                     case "version":
-                        SendData("PRIVMSG", channel.Name + " IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                        SendData("PRIVMSG", channel.Name + " :IRC.plugin " + version);
                         break;
 
                     default:
