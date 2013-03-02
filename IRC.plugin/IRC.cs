@@ -18,8 +18,6 @@ namespace IRC.plugin
            Version = "1.0.0")]
     public class IRC : Plugin<Player, IRC>
     {
-        private string version = "1.0.0";
-
         private string server;
         private int port;
         private string nick;
@@ -215,7 +213,6 @@ namespace IRC.plugin
                     writer.WriteLine(cmd + " " + param);
                     writer.Flush();
 
-                    param.Replace("\001", "");
                     Cloud.Logger.Log(LogPriority.Info, "[SEND] " + cmd + " " + param);
                 }
             }
@@ -425,7 +422,7 @@ namespace IRC.plugin
 
             if (sender.Hostname == "ctcp-scanner.rizon.net")
             {
-                SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
+                SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
             }
 
             else if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
@@ -621,6 +618,7 @@ namespace IRC.plugin
         /// Execute a command from PRIVMSG if prefixed by the command char.
         /// </summary>
         /// <param name="command">The command to execute.</param>
+        /// <param name="sender">The user that called the command.</param>
         private void ExecuteCommand(string command, User sender)
         {
             command = command.Remove(0, 1).ToLower().Trim(' ', '\n', '\r');
@@ -633,7 +631,7 @@ namespace IRC.plugin
                 {
                     case "irc":
                         //Handle irc commands
-                        ExecuteIRCCommand(cmdParts);
+                        ExecuteIRCCommand(cmdParts, sender);
                         break;
 
                     default:
@@ -650,10 +648,11 @@ namespace IRC.plugin
         }
 
         /// <summary>
-        /// Executes any IRC related command
+        /// Executes any IRC related command.
         /// </summary>
-        /// <param name="cmdParts">Command parts</param>
-        private void ExecuteIRCCommand(string[] cmdParts)
+        /// <param name="cmdParts">The command to execute.</param>
+        /// <param name="sender">The user that called the command.</param>
+        private void ExecuteIRCCommand(string[] cmdParts, User sender)
         {
             try
             {
@@ -664,7 +663,7 @@ namespace IRC.plugin
                         break;
 
                     case "version":
-                        SendData("PRIVMSG", channel.Name + " :IRC.plugin " + version);
+                        SendData("PRIVMSG", channel.Name + " :@" + sender.Nick + ": IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
                         break;
 
                     default:
