@@ -53,7 +53,6 @@ namespace IRC.plugin
             port = 6667;
             nick = "RunBot";
             channel = new Channel("#RunEE");
-            ListenThread = new Thread(Listen);
 
             Cloud.Logger.Log(LogPriority.Debug, "Enabled");
         }
@@ -65,6 +64,27 @@ namespace IRC.plugin
         public void CommandIRCNotify(ICommand<Player> cmd, string target, string message)
         {
             SendData("PRIVMSG", channel.Name + " :[" + cmd.Sender.Username.ToUpper() + "] @" + target + ": " + message);
+        }
+
+        [Command("ircreload", EECloud.API.Group.Admin, Aliases = new string[] { "ircreconnect", "ircrestart" })]
+        public void CommandIRCReload(ICommand<Player> cmd)
+        {
+            Cloud.Logger.Log(LogPriority.Info, "Reconnecting to IRC...");
+
+            try
+            {
+                if (isConnected)
+                {
+                    Disconnect();
+                }
+                Connect();
+            }
+
+            catch (Exception ex)
+            {
+                Cloud.Logger.Log(LogPriority.Error, "Failed at reconnecting to IRC!");
+                Cloud.Logger.LogEx(ex);
+            }
         }
 
         #endregion
@@ -87,6 +107,7 @@ namespace IRC.plugin
 
                 isConnected = true;
 
+                ListenThread = new Thread(Listen);
                 ListenThread.Start();
 
                 Identify();
@@ -114,9 +135,8 @@ namespace IRC.plugin
 
                 if (isConnected)
                 {
-                    SendData("QUIT");
+                    SendData("QUIT", " :Gone");
                 }
-
                 ListenThread.Abort();
 
                 if (reader != null)
@@ -667,6 +687,18 @@ namespace IRC.plugin
                     case "version":
                         SendData("PRIVMSG", channel.Name + " :@" + sender.Nick + ": IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
                         break;
+
+                    /*case "reconnect":
+                    case "restart":
+                    case "reload":
+                        SendData("PRIVMSG", channel.Name + " :@" + sender.Nick + ": Reconnecting...");
+                        Cloud.Logger.Log(LogPriority.Info, "Reconnecting to IRC...");
+
+                        if (isConnected)
+                            Disconnect();
+                        Connect();
+
+                        break;*/
 
                     default:
                         break;
