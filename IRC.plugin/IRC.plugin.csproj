@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,7 +31,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="EECloud.API, Version=0.9.21.0, Culture=neutral, processorArchitecture=x86" />
+    <Reference Include="EECloud.API, Version=0.9.22.0, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\eecloud\EECloud.API\bin\Debug\EECloud.API.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -41,11 +45,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IRC.cs" />
-    <Compile Include="Parts\Commands.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\Channel.cs" />
+    <Compile Include="Utils\Constants.cs" />
     <Compile Include="Utils\Numerics.cs" />
+    <Compile Include="Utils\Rank.cs" />
     <Compile Include="Utils\User.cs" />
+    <Compile Include="Utils\UserList.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

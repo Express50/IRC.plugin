@@ -13,11 +13,11 @@ namespace IRC.plugin.Utils
 
         public string Hostname { get; set; }
 
-
         public string Realname { get; set; }
 
-
         public string Modes { get; set; }
+
+        public Rank Rank { get; set; }
 
         public User() { }
 
