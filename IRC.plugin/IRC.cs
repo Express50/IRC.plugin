@@ -132,6 +132,8 @@ namespace IRC.plugin
                     client.Close();
 
                 Cloud.Logger.Log(LogPriority.Info, "Disconnected from IRC server");
+
+                isConnected = false;
             }
 
             catch (Exception ex)
