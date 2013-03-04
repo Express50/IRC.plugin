@@ -32,6 +32,7 @@ namespace IRC.plugin
         private Thread ListenThread;
 
         public bool isConnected = false;
+        public bool isRestarting = false;
 
         #region EECloud
         protected override void OnConnect()
@@ -70,6 +71,7 @@ namespace IRC.plugin
         public void CommandIRCReload(ICommand<Player> cmd)
         {
             Cloud.Logger.Log(LogPriority.Info, "Reconnecting to IRC...");
+            isRestarting = true;
 
             try
             {
@@ -98,6 +100,8 @@ namespace IRC.plugin
         {
             try
             {
+                isRestarting = false;
+
                 Cloud.Logger.Log(LogPriority.Info, "Attempting to establish a connection...");
                 client = new TcpClient(server, port);
                 nstream = client.GetStream();
@@ -135,9 +139,12 @@ namespace IRC.plugin
 
                 if (isConnected)
                 {
-                    SendData("QUIT", " :Gone");
+                    SendData("QUIT");
                 }
-                ListenThread.Abort();
+
+                while (ListenThread.IsAlive)
+                {
+                }
 
                 if (reader != null)
                     reader.Close();
@@ -206,11 +213,13 @@ namespace IRC.plugin
         /// </summary>
         public void Listen()
         {
-            while (isConnected)
+            while (isConnected == true && isRestarting == false)
             {
                 ParseReceivedData(reader.ReadLine());
-                Thread.Sleep(50);
+                //Thread.Sleep(50);
             }
+
+            return;
         }
 
         /// <summary>
@@ -688,17 +697,17 @@ namespace IRC.plugin
                         SendData("PRIVMSG", channel.Name + " :@" + sender.Nick + ": IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
                         break;
 
-                    /*case "reconnect":
+                    case "reconnect":
                     case "restart":
                     case "reload":
                         SendData("PRIVMSG", channel.Name + " :@" + sender.Nick + ": Reconnecting...");
+                        isRestarting = true;
                         Cloud.Logger.Log(LogPriority.Info, "Reconnecting to IRC...");
 
                         if (isConnected)
                             Disconnect();
                         Connect();
-
-                        break;*/
+                        break;
 
                     default:
                         break;
