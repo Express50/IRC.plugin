@@ -70,23 +70,7 @@ namespace IRC.plugin
         [Command("ircreload", EECloud.API.Group.Admin, Aliases = new string[] { "ircreconnect", "ircrestart" })]
         public void CommandIRCReload(ICommand<Player> cmd)
         {
-            Cloud.Logger.Log(LogPriority.Info, "Reconnecting to IRC...");
-            isRestarting = true;
-
-            try
-            {
-                if (isConnected)
-                {
-                    Disconnect();
-                }
-                Connect();
-            }
-
-            catch (Exception ex)
-            {
-                Cloud.Logger.Log(LogPriority.Error, "Failed at reconnecting to IRC!");
-                Cloud.Logger.LogEx(ex);
-            }
+            DoRestart();
         }
 
         #endregion
@@ -133,39 +117,43 @@ namespace IRC.plugin
         /// </summary>
         private void Disconnect()
         {
-            try
+            lock (new object())
             {
-                Cloud.Logger.Log(LogPriority.Debug, "Disconnecting: closing all open streams...");
-
-                if (isConnected)
+                try
                 {
-                    SendData("QUIT");
+                    Cloud.Logger.Log(LogPriority.Debug, "Disconnecting: closing all open streams...");
+
+                    if (isConnected)
+                    {
+                        SendData("QUIT");
+                    }
+
+                    while (ListenThread.IsAlive)
+                    {
+                        //Wait for ListenThread to die
+                    }
+
+                    if (reader != null)
+                        reader.Close();
+
+                    if (writer != null)
+                        writer.Close();
+
+                    if (nstream != null)
+                        nstream.Close();
+
+                    if (client != null)
+                        client.Close();
+
+                    Cloud.Logger.Log(LogPriority.Info, "Disconnected from IRC server");
+
+                    isConnected = false;
                 }
 
-                while (ListenThread.IsAlive)
+                catch (Exception ex)
                 {
+                    Cloud.Logger.LogEx(ex);
                 }
-
-                if (reader != null)
-                    reader.Close();
-
-                if (writer != null)
-                    writer.Close();
-
-                if (nstream != null)
-                    nstream.Close();
-
-                if (client != null)
-                    client.Close();
-
-                Cloud.Logger.Log(LogPriority.Info, "Disconnected from IRC server");
-
-                isConnected = false;
-            }
-
-            catch (Exception ex)
-            {
-                Cloud.Logger.LogEx(ex);
             }
         }
 
@@ -220,6 +208,35 @@ namespace IRC.plugin
             }
 
             return;
+        }
+
+        /// <summary>
+        /// Performs a restart operation.
+        /// </summary>
+        private void DoRestart()
+        {
+            if (isRestarting == false)
+            {
+                try
+                {
+                    Cloud.Logger.Log(LogPriority.Info, "Performing restart...");
+
+                    isRestarting = true;
+
+                    if (isConnected)
+                    {
+                        Disconnect();
+                    }
+
+                    Connect();
+                }
+
+                catch (Exception ex) 
+                {
+                    Cloud.Logger.Log(LogPriority.Error, "Failed to restart IRC.plugin.");
+                    Cloud.Logger.LogEx(ex);
+                }
+            }
         }
 
         /// <summary>
@@ -700,13 +717,7 @@ namespace IRC.plugin
                     case "reconnect":
                     case "restart":
                     case "reload":
-                        SendData("PRIVMSG", channel.Name + " :@" + sender.Nick + ": Reconnecting...");
-                        isRestarting = true;
-                        Cloud.Logger.Log(LogPriority.Info, "Reconnecting to IRC...");
-
-                        if (isConnected)
-                            Disconnect();
-                        Connect();
+                        DoRestart();
                         break;
 
                     default:
