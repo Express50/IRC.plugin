@@ -15,9 +15,11 @@ namespace IRC.plugin
            Category = PluginCategory.Admin,
            ChatName = "IRC",
            Description = "IRC interface for executing commands in your EECloud plugin.",
-           Version = "1.0.0")]
+           Version = "0.1")]
     public class IRC : Plugin<Player, IRC>
     {
+        private string version = Assembly.GetExecutingAssembly().GetName().Version.Major.ToString() + "." + Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString();
+
         private string server;
         private int port;
         private string nick;
@@ -507,7 +509,7 @@ namespace IRC.plugin
 
             if (sender.Hostname == "ctcp-scanner.rizon.net")
             {
-                SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
             }
 
             else if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
@@ -748,7 +750,7 @@ namespace IRC.plugin
                         break;
 
                     case "version":
-                        SendData("PRIVMSG", channel.Name + " :@" + sender.Nick + ": IRC.plugin " + Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                        SendData("PRIVMSG", channel.Name + " :@" + sender.Nick + ": IRC.plugin " + version);
                         break;
 
                     case "reconnect":
