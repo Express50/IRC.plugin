@@ -65,7 +65,16 @@ namespace IRC.plugin
         [Command("ircnotify", EECloud.API.Group.Trusted, Aliases = new string[] { "notify" })]
         public void CommandIRCNotify(ICommand<Player> cmd, string target, string message)
         {
-            SendData("PRIVMSG", channel.Name + " :[" + cmd.Sender.Username.ToUpper() + "] @" + target + ": " + message);
+            if (cmd.Sender != null)
+            {
+                string fullmessage = cmd.CommandText.Substring(cmd.CommandText.IndexOf(target) + (target.Length + 1));
+                if (channel.Users.Contains(channel.Users.GetByNick(target)))
+                {
+                    SendData("PRIVMSG", channel.Name + " :[" + cmd.Sender.Username.ToUpper() + "] @" + target + ": " + fullmessage);
+                }
+
+                SendData("MEMOSERV", ":SEND This is an automated memo: " + target + " [" + cmd.Sender.Username.ToUpper() + "] " + fullmessage);
+            }
         }
 
         [Command("ircreload", EECloud.API.Group.Admin, Aliases = new string[] { "ircreconnect", "ircrestart" })]
