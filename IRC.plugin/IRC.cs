@@ -53,8 +53,34 @@ namespace IRC.plugin
         {
             server = "irc.rizon.net";
             port = 6667;
-            nick = "RunBot";
-            channel = new Channel("#RunEE");
+
+            if (Properties.Settings.Default.Username != String.Empty)
+            {
+                nick = Properties.Settings.Default.Username;
+            }
+
+            else
+            {
+                nick = "DefaultIRCPBot";
+            }
+
+            if (Properties.Settings.Default.Channel != String.Empty)
+            {
+                if (Properties.Settings.Default.Channel.StartsWith("#"))
+                {
+                    channel = new Channel(Properties.Settings.Default.Channel);
+                }
+
+                else
+                {
+                    channel = new Channel("#" + Properties.Settings.Default.Channel);
+                }
+            }
+
+            else
+            {
+                channel = new Channel("#IRCP-Testing");
+            }
 
             Cloud.Logger.Log(LogPriority.Debug, "Enabled");
         }
@@ -73,7 +99,7 @@ namespace IRC.plugin
                     SendData("PRIVMSG", channel.Name + " :[" + cmd.Sender.Username.ToUpper() + "] @" + target + ": " + fullmessage);
                 }
 
-                SendData("MEMOSERV", ":SEND This is an automated memo: " + target + " [" + cmd.Sender.Username.ToUpper() + "] " + fullmessage);
+                SendData("MEMOSERV", ":SEND " + target + " This is an automated memo: [" + cmd.Sender.Username.ToUpper() + "] " + fullmessage);
             }
         }
 
@@ -264,7 +290,7 @@ namespace IRC.plugin
                     writer.WriteLine(cmd);
                     writer.Flush();
 
-                    Cloud.Logger.Log(LogPriority.Info, "[SEND] " + cmd + " " + param);
+                    Cloud.Logger.Log(LogPriority.Info, "[SEND] " + cmd);
                 }
 
                 else
