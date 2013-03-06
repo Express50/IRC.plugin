@@ -89,6 +89,7 @@ csx
 AppPackages/
 
 # Others
+IRC.host
 [Bb]in
 [Oo]bj
 sql
