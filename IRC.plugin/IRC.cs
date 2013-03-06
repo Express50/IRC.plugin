@@ -30,6 +30,7 @@ namespace IRC.plugin
         private TcpClient client = null;
 
         private Thread ListenThread;
+        private Thread RestartThread;
 
         public bool isConnected = false;
         public bool isRestarting = false;
@@ -70,7 +71,8 @@ namespace IRC.plugin
         [Command("ircreload", EECloud.API.Group.Admin, Aliases = new string[] { "ircreconnect", "ircrestart" })]
         public void CommandIRCReload(ICommand<Player> cmd)
         {
-            DoRestart();
+            RestartThread = new Thread(DoRestart);
+            RestartThread.Start();
         }
 
         #endregion
@@ -121,7 +123,7 @@ namespace IRC.plugin
             {
                 try
                 {
-                    Cloud.Logger.Log(LogPriority.Debug, "Disconnecting: closing all open streams...");
+                    Cloud.Logger.Log(LogPriority.Info, "Disconnecting: closing all open streams...");
 
                     if (isConnected)
                     {
@@ -164,7 +166,7 @@ namespace IRC.plugin
         {
             try
             {
-                Cloud.Logger.Log(LogPriority.Debug, "Attempting to identify connection...");
+                Cloud.Logger.Log(LogPriority.Info, "Attempting to identify connection...");
                 SendData("USER", nick + " - " + server + " :" + nick);
                 SendData("NICK", nick);
                 //SendData("NICKSERV", "IDENTIFY");
@@ -172,7 +174,7 @@ namespace IRC.plugin
 
             catch (Exception ex)
             {
-                Cloud.Logger.Log(LogPriority.Debug, "Failed to identify");
+                Cloud.Logger.Log(LogPriority.Error, "Failed to identify");
                 Cloud.Logger.LogEx(ex);
                 Disconnect();
             }
@@ -717,7 +719,8 @@ namespace IRC.plugin
                     case "reconnect":
                     case "restart":
                     case "reload":
-                        DoRestart();
+                        RestartThread = new Thread(DoRestart);
+                        RestartThread.Start();
                         break;
 
                     default:
