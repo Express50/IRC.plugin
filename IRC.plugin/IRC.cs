@@ -33,6 +33,8 @@ namespace IRC.plugin
 
         private Thread ListenThread;
         private Thread RestartThread;
+        private Thread DisconnectThread;
+        private object locker = new object();
 
         public bool isConnected = false;
         public bool isRestarting = false;
@@ -112,6 +114,13 @@ namespace IRC.plugin
             RestartThread.Start();
         }
 
+        [Command("ircquit", EECloud.API.Group.Admin)]
+        public void CommandIRCQuit(ICommand<Player> cmd)
+        {
+            DisconnectThread = new Thread(Disconnect);
+            DisconnectThread.Start();
+        }
+
         #endregion
 
         #region IRC Functions
@@ -154,9 +163,9 @@ namespace IRC.plugin
         /// <summary>
         /// Disconnect from the IRC channel and close all open streams.
         /// </summary>
-        private void Disconnect()
+        public void Disconnect()
         {
-            lock (new object())
+            lock (locker)
             {
                 try
                 {
@@ -746,7 +755,8 @@ namespace IRC.plugin
                 switch (cmdParts[1])
                 {
                     case "quit":
-                        Disconnect();
+                        DisconnectThread = new Thread(Disconnect);
+                        DisconnectThread.Start();
                         break;
 
                     case "version":
