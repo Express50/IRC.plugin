@@ -5,9 +5,10 @@ using System.Net.Sockets;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Reflection;
+using System.Threading;
+using System.Configuration;
 using EECloud.API;
 using IRC.plugin.Utils;
-using System.Threading;
 
 namespace IRC.plugin
 {
@@ -15,7 +16,7 @@ namespace IRC.plugin
            Category = PluginCategory.Admin,
            ChatName = "IRC",
            Description = "IRC interface for executing commands in your EECloud plugin.",
-           Version = "0.1")]
+           Version = "0.2")]
     public class IRC : Plugin<Player, IRC>
     {
         private string version = Assembly.GetExecutingAssembly().GetName().Version.Major.ToString() + "." + Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString();
@@ -38,6 +39,7 @@ namespace IRC.plugin
 
         public bool isConnected = false;
         public bool isRestarting = false;
+        public bool isDisconnecting = false;
 
         #region EECloud
         protected override void OnConnect()
@@ -57,32 +59,20 @@ namespace IRC.plugin
         {
             server = "irc.rizon.net";
             port = 6667;
+            ExeConfigurationFileMap configMap = new ExeConfigurationFileMap();
+            configMap.ExeConfigFilename = @"IRC.config";
+            Configuration config = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
 
-            if (Properties.Settings.Default.Username != String.Empty)
+            if (config.HasFile)
             {
-                nick = Properties.Settings.Default.Username;
+                nick = config.AppSettings.Settings["Username"].Value.ToString();
+                channel = new Channel(config.AppSettings.Settings["Channel"].Value.ToString());
             }
 
             else
             {
+                Cloud.Logger.Log(LogPriority.Warning, "Couldn't find IRC.config file");
                 nick = "DefaultIRCPBot";
-            }
-
-            if (Properties.Settings.Default.Channel != String.Empty)
-            {
-                if (Properties.Settings.Default.Channel.StartsWith("#"))
-                {
-                    channel = new Channel(Properties.Settings.Default.Channel);
-                }
-
-                else
-                {
-                    channel = new Channel("#" + Properties.Settings.Default.Channel);
-                }
-            }
-
-            else
-            {
                 channel = new Channel("#IRCP-Testing");
             }
 
@@ -169,6 +159,8 @@ namespace IRC.plugin
             {
                 try
                 {
+                    isDisconnecting = true;
+
                     Cloud.Logger.Log(LogPriority.Info, "Disconnecting: closing all open streams...");
 
                     if (isConnected)
@@ -249,9 +241,14 @@ namespace IRC.plugin
         /// </summary>
         public void Listen()
         {
-            while (isConnected == true && isRestarting == false)
+            while (isConnected == true && isRestarting == false && isDisconnecting == false)
             {
-                ParseReceivedData(reader.ReadLine());
+                string str = reader.ReadLine();
+
+                if (str != String.Empty)
+                {
+                    ParseReceivedData(str);
+                }
                 //Thread.Sleep(50);
             }
 
@@ -279,7 +276,7 @@ namespace IRC.plugin
                     Connect();
                 }
 
-                catch (Exception ex) 
+                catch (Exception ex)
                 {
                     Cloud.Logger.Log(LogPriority.Error, "Failed to restart IRC.plugin.");
                     Cloud.Logger.LogEx(ex);
@@ -515,23 +512,27 @@ namespace IRC.plugin
         private void onPrivMsg(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
+            sender = channel.Users.GetUser(sender.Hostname);
 
-            if (sender.Hostname == "ctcp-scanner.rizon.net")
+            if (sender != null)
             {
-                SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
-            }
-
-            else if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
-            {
-                if (message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
+                if (sender.Hostname == "ctcp-scanner.rizon.net")
                 {
-                    string command = "";
-                    for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
-                    {
-                        command += message[i] + " ";
-                    }
+                    SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
+                }
 
-                    ExecuteCommand(command, sender);
+                else if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
+                {
+                    if (message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
+                    {
+                        string command = "";
+                        for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
+                        {
+                            command += message[i] + " ";
+                        }
+
+                        ExecuteCommand(command, sender);
+                    }
                 }
             }
         }
@@ -563,10 +564,12 @@ namespace IRC.plugin
         private void onMode(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
+            sender = channel.Users.GetUser(sender.Hostname);
+            SendData("WHO", channel.Name);
 
             //Split into onChannelMode() and onUserMode()
 
-            if (sender.Nick == nick) //your own mode
+            /*if (sender.Nick == nick) //your own mode
             {
                 return;
             }
@@ -582,7 +585,7 @@ namespace IRC.plugin
                 {
                     onUserMode(sender, channel.Users.GetUser(message[Constants.MODE_TARGET_USER_INDEX]), message[Constants.MODE_MODES_INDEX]);
                 }
-            }
+            }*/
         }
 
         /// <summary>
@@ -664,14 +667,18 @@ namespace IRC.plugin
         private void onKick(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
+            sender = channel.Users.GetUser(sender.Hostname);
 
-            if (channel.Users.Contains(channel.Users.GetUser(message[Constants.KICK_TARGET_USER_INDEX])))
+            if (sender != null)
             {
-                channel.Users.Remove(channel.Users.GetUser(message[Constants.KICK_TARGET_USER_INDEX]));
-
-                if (message[Constants.KICK_TARGET_USER_INDEX] == nick)
+                if (channel.Users.Contains(channel.Users.GetUser(message[Constants.KICK_TARGET_USER_INDEX])))
                 {
-                    JoinChannel();
+                    channel.Users.Remove(channel.Users.GetUser(message[Constants.KICK_TARGET_USER_INDEX]));
+
+                    if (message[Constants.KICK_TARGET_USER_INDEX] == nick)
+                    {
+                        JoinChannel();
+                    }
                 }
             }
         }
@@ -684,10 +691,14 @@ namespace IRC.plugin
         private void onJoin(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
+            sender = channel.Users.GetUser(sender.Hostname);
 
-            if (!(channel.Users.Contains(sender)))
+            if (sender != null)
             {
-                channel.Users.Add(sender);
+                if (!(channel.Users.Contains(sender)))
+                {
+                    channel.Users.Add(sender);
+                }
             }
 
             SendData("WHO", channel.Name);
@@ -701,10 +712,14 @@ namespace IRC.plugin
         private void onPart(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
+            sender = channel.Users.GetUser(sender.Hostname);
 
-            if (channel.Users.Contains(sender))
+            if (sender != null)
             {
-                channel.Users.Remove(sender);
+                if (channel.Users.Contains(sender))
+                {
+                    channel.Users.Remove(sender);
+                }
             }
         }
         #endregion
