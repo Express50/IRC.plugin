@@ -24,6 +24,7 @@ namespace IRC.plugin
         private string server;
         private int port;
         private string nick;
+        private string password;
         private Channel channel;
 
         private NetworkStream nstream = null;
@@ -66,6 +67,7 @@ namespace IRC.plugin
             if (config.HasFile)
             {
                 nick = config.AppSettings.Settings["Username"].Value.ToString();
+                password = config.AppSettings.Settings["Password"].Value.ToString();
                 channel = new Channel(config.AppSettings.Settings["Channel"].Value.ToString());
             }
 
@@ -207,7 +209,11 @@ namespace IRC.plugin
                 Cloud.Logger.Log(LogPriority.Info, "Attempting to identify connection...");
                 SendData("USER", nick + " - " + server + " :" + nick);
                 SendData("NICK", nick);
-                //SendData("NICKSERV", "IDENTIFY");
+
+                if (!String.IsNullOrEmpty(password))
+                {
+                    SendData("NICKSERV", "IDENTIFY " + password);
+                }
             }
 
             catch (Exception ex)
