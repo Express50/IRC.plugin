@@ -23,6 +23,9 @@ namespace IRC.plugin.Utils
         public const int RPLWHOREPLY_NICK_INDEX = 7;
         public const int RPLWHOREPLY_FLAGS_INDEX = 8;
 
+        public const int RPLTOPIC_CHANNEL_NAME_INDEX = 3;
+        public const int RPLTOPIC_TOPIC_START_INDEX = 4;
+
         public const int IRC_COMMAND_INDEX = 1;
 
         public const int NAMES_CHANNEL_NAME_INDEX = 4;
@@ -30,6 +33,9 @@ namespace IRC.plugin.Utils
 
         public const int PRIVMSG_TARGET_INDEX = 2;
         public const int PRIVMSG_MESSAGE_INDEX = 3;
+
+        public const int NOTICE_TARGET_INDEX = 2;
+        public const int NOTICE_MESSAGE_INDEX = 3;
 
         public const int MODE_CHANNEL_NAME_INDEX = 2;
         public const int MODE_MODES_INDEX = 3;

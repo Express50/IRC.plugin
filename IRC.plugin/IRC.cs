@@ -38,6 +38,42 @@ namespace IRC.plugin
         private Thread DisconnectThread;
         private object locker = new object();
 
+        private int[] DontPrint = {(int)Numerics.RPL_MOTD, 
+                                   (int)Numerics.RPL_WHOREPLY, 
+                                   (int)Numerics.RPL_ENDOFWHO,
+                                   (int)Numerics.RPL_MOTDSTART,
+                                   (int)Numerics.RPL_ENDOFMOTD,
+                                   (int)Numerics.RPL_ENDOFSERVICES,
+                                   (int)Numerics.RPL_SERVICE,
+                                   (int)Numerics.RPL_SERVICEINFO,
+                                   (int)Numerics.RPL_YOURHOST,
+                                   (int)Numerics.RPL_YOUREOPER,
+                                   (int)Numerics.RPL_WHOISACCOUNT,
+                                   (int)Numerics.RPL_WHOISACTUALLY,
+                                   (int)Numerics.RPL_WHOISCHANNELS,
+                                   (int)Numerics.RPL_WHOISIDLE,
+                                   (int)Numerics.RPL_WHOISOPERATOR,
+                                   (int)Numerics.RPL_WHOISSERVER,
+                                   (int)Numerics.RPL_WHOISUSER,
+                                   (int)Numerics.RPL_CREATED, 
+                                   (int)Numerics.RPL_MYINFO,
+                                   (int)Numerics.RPL_ISUPPORT,
+                                   (int)Numerics.RPL_LUSERCLIENT,
+                                   (int)Numerics.RPL_LUSERCHANNELS,
+                                   (int)Numerics.RPL_LUSERME,
+                                   (int)Numerics.RPL_LUSEROP,
+                                   (int)Numerics.RPL_LUSERUNKNOWN,
+                                   (int)Numerics.RPL_HOSTHIDDEN,
+                                   (int)Numerics.RPL_WELCOME,
+                                   (int)Numerics.RPL_TOPIC,
+                                   (int)Numerics.RPL_TOPICWHOTIME,
+                                   (int)Numerics.RPL_ENDOFNAMES,
+                                   (int)Numerics.RPL_NAMREPLY,
+                                   042,
+                                   265,
+                                   266,
+                                   900};
+
         public bool isConnected = false;
         public bool isRestarting = false;
         public bool isDisconnecting = false;
@@ -66,6 +102,7 @@ namespace IRC.plugin
 
             if (config.HasFile)
             {
+                server = config.AppSettings.Settings["Server"].Value.ToString();
                 nick = config.AppSettings.Settings["Username"].Value.ToString();
                 password = config.AppSettings.Settings["Password"].Value.ToString();
                 channel = new Channel(config.AppSettings.Settings["Channel"].Value.ToString());
@@ -74,6 +111,7 @@ namespace IRC.plugin
             else
             {
                 Cloud.Logger.Log(LogPriority.Warning, "Couldn't find IRC.config file");
+                server = "irc.rizon.net";
                 nick = "DefaultIRCPBot";
                 channel = new Channel("#IRCP-Testing");
             }
@@ -126,7 +164,7 @@ namespace IRC.plugin
             {
                 isRestarting = false;
 
-                Cloud.Logger.Log(LogPriority.Info, "Attempting to establish a connection...");
+                Cloud.Logger.Log(LogPriority.Info, "Attempting to establish a connection to IRC server...");
                 client = new TcpClient(server, port);
                 nstream = client.GetStream();
 
@@ -139,10 +177,6 @@ namespace IRC.plugin
                 ListenThread.Start();
 
                 Identify();
-
-                JoinChannel();
-
-                SendData("WHO", channel.Name);
             }
 
             catch (Exception ex)
@@ -206,19 +240,32 @@ namespace IRC.plugin
         {
             try
             {
-                Cloud.Logger.Log(LogPriority.Info, "Attempting to identify connection...");
+                Cloud.Logger.Log(LogPriority.Info, "Attempting to identify IRC connection...");
                 SendData("USER", nick + " - " + server + " :" + nick);
                 SendData("NICK", nick);
+            }
 
+            catch (Exception ex)
+            {
+                Cloud.Logger.Log(LogPriority.Error, "Failed to identify IRC connection");
+                Cloud.Logger.LogEx(ex);
+                Disconnect();
+            }
+        }
+
+        private void NickservIdentify()
+        {
+            try
+            {
                 if (!String.IsNullOrEmpty(password))
                 {
-                    SendData("NICKSERV", "IDENTIFY " + password);
+                    SendData("PRIVMSG", "NICKSERV :IDENTIFY " + password);
                 }
             }
 
             catch (Exception ex)
             {
-                Cloud.Logger.Log(LogPriority.Error, "Failed to identify");
+                Cloud.Logger.Log(LogPriority.Error, "Failed to identify IRC client");
                 Cloud.Logger.LogEx(ex);
                 Disconnect();
             }
@@ -231,13 +278,14 @@ namespace IRC.plugin
         {
             try
             {
-                Cloud.Logger.Log(LogPriority.Info, "Joining channel...");
+                Cloud.Logger.Log(LogPriority.Info, "Joining IRC channel...");
                 SendData("JOIN", channel.Name);
+                SendData("WHO", channel.Name);
             }
 
             catch (Exception ex)
             {
-                Cloud.Logger.Log(LogPriority.Error, "Couldn't join channel");
+                Cloud.Logger.Log(LogPriority.Error, "Couldn't join IRC channel");
                 Cloud.Logger.LogEx(ex);
             }
         }
@@ -348,6 +396,11 @@ namespace IRC.plugin
                 {
                     switch (numeric)
                     {
+                        case (int)Numerics.RPL_WELCOME:
+                            NickservIdentify();
+                            JoinChannel();
+                            break;
+
                         case (int)Numerics.RPL_NAMREPLY:
                             onNames(message);
                             break;
@@ -366,13 +419,39 @@ namespace IRC.plugin
                             }
                             break;
 
+                        case (int)Numerics.ERR_NOTREGISTERED:
+
+
                         default:
                             break;
                     }
 
-                    if (numeric != (int)Numerics.RPL_MOTD)
+                    if (!DontPrint.Contains(numeric))
                     {
                         Cloud.Logger.Log(LogPriority.Info, data);
+                    }
+
+                    else if (numeric == (int)Numerics.RPL_WELCOME)
+                    {
+                        Cloud.Logger.Log(LogPriority.Info, "Welcome to " + server);
+                    }
+
+                    else if (numeric == (int)Numerics.RPL_TOPIC)
+                    {
+                        string topic = "";
+
+                        for (int i = 0; i < message.Length; i++)
+                        {
+                            if (message[i].StartsWith(":"))
+                                message[i] = message[i].Remove(0, 1);
+                        }
+
+                        for (int i = Constants.RPLTOPIC_TOPIC_START_INDEX; i < message.Length; i++)
+                        {
+                            topic += message[i] + " ";
+                        }
+
+                        Cloud.Logger.Log(LogPriority.Info, "Topic for " + message[Constants.RPLTOPIC_CHANNEL_NAME_INDEX] + " is: " + topic);
                     }
 
                     return;
@@ -381,8 +460,9 @@ namespace IRC.plugin
                 //Parse command
                 else if (message[Constants.SENDER_INDEX].StartsWith(":"))
                 {
-                    Cloud.Logger.Log(LogPriority.Info, data);
+                    //Cloud.Logger.Log(LogPriority.Info, data);
                     //Remove useless chars
+
                     for (int i = 0; i < message.Length; i++)
                     {
                         if (message[i].StartsWith(":"))
@@ -491,7 +571,6 @@ namespace IRC.plugin
                 {
                     if (message[i].StartsWith("+") || message[i].StartsWith("%") || message[i].StartsWith("@") || message[i].StartsWith("~"))
                     {
-                        //Implement initialization of modes here...
                         message[i] = message[i].Remove(0, 1);
                         if (!(channel.Users.Exists((user) => user.Nick == message[i])))
                         {
@@ -507,6 +586,13 @@ namespace IRC.plugin
                         }
                     }
                 }
+
+                string users = "";
+                foreach (User user in channel.Users)
+                {
+                    users += user.Nick + " ";
+                }
+                Cloud.Logger.Log(LogPriority.Info, "Users in " + channel.Name + ": " + users);
             }
         }
 
@@ -518,27 +604,33 @@ namespace IRC.plugin
         private void onPrivMsg(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
-            sender = channel.Users.GetUser(sender.Hostname);
+            //sender = channel.Users.GetUser(sender.Hostname);
 
-            if (sender != null)
+            string fullmessage = "";
+            for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
             {
-                if (sender.Hostname == "ctcp-scanner.rizon.net")
-                {
-                    SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
-                }
+                fullmessage += message[i] + " ";
+            }
 
-                else if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
+            Cloud.Logger.Log(LogPriority.Info, "[" + channel.Name + "] " + sender.Nick + ": " + fullmessage);
+
+            //TODO: Implement better version sending
+            /*if (sender.Hostname == "ctcp-scanner.rizon.net")
+            {
+                SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
+            }*/
+
+            if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
+            {
+                if (message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
                 {
-                    if (message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
+                    string command = "";
+                    for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
                     {
-                        string command = "";
-                        for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
-                        {
-                            command += message[i] + " ";
-                        }
-
-                        ExecuteCommand(command, sender);
+                        command += message[i] + " ";
                     }
+
+                    ExecuteCommand(command, sender);
                 }
             }
         }
@@ -550,7 +642,21 @@ namespace IRC.plugin
         /// <param name="message">The message sent.</param>
         private void onNotice(string hostmask, string[] message)
         {
+            User sender = ExtractUserInfo(hostmask);
 
+            if (sender.Nick.ToLower() == "nickserv")
+            {
+                string fullmessage = "";
+                for (int i = Constants.NOTICE_MESSAGE_INDEX; i < message.Length; i++)
+                {
+                    fullmessage += message[i] + " ";
+                }
+
+                if (fullmessage.ToLower().Contains("password accepted"))
+                {
+                    Cloud.Logger.Log(LogPriority.Info, "Your password was accepted. You are identified.");
+                }
+            }
         }
 
         /// <summary>
