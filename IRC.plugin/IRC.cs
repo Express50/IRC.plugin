@@ -380,6 +380,7 @@ namespace IRC.plugin
             try
             {
                 string[] message = data.Split(' ');
+                CleanData(message);
 
                 string hostmask;
 
@@ -440,12 +441,6 @@ namespace IRC.plugin
                     {
                         string topic = "";
 
-                        for (int i = 0; i < message.Length; i++)
-                        {
-                            if (message[i].StartsWith(":"))
-                                message[i] = message[i].Remove(0, 1);
-                        }
-
                         for (int i = Constants.RPLTOPIC_TOPIC_START_INDEX; i < message.Length; i++)
                         {
                             topic += message[i] + " ";
@@ -458,16 +453,8 @@ namespace IRC.plugin
                 }
 
                 //Parse command
-                else if (message[Constants.SENDER_INDEX].StartsWith(":"))
+                else
                 {
-                    //Cloud.Logger.Log(LogPriority.Info, data);
-                    //Remove useless chars
-
-                    for (int i = 0; i < message.Length; i++)
-                    {
-                        if (message[i].StartsWith(":"))
-                            message[i] = message[i].Remove(0, 1);
-                    }
 
                     hostmask = message[Constants.SENDER_INDEX];
 
@@ -557,6 +544,8 @@ namespace IRC.plugin
                     channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.None;
                 }
             }
+
+            Cloud.Logger.Log(LogPriority.Info, message[Constants.RPLWHOREPLY_FLAGS_INDEX] + "-> " + message[Constants.RPLWHOREPLY_NICK_INDEX] + " (" + channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank + ")");
         }
 
         /// <summary>
@@ -604,24 +593,24 @@ namespace IRC.plugin
         private void onPrivMsg(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
-            //sender = channel.Users.GetUser(sender.Hostname);
-
-            string fullmessage = "";
-            for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
-            {
-                fullmessage += message[i] + " ";
-            }
-
-            Cloud.Logger.Log(LogPriority.Info, "[" + channel.Name + "] " + sender.Nick + ": " + fullmessage);
-
-            //TODO: Implement better version sending
-            /*if (sender.Hostname == "ctcp-scanner.rizon.net")
-            {
-                SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
-            }*/
+            sender = channel.Users.GetUser(sender.Hostname);
 
             if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
             {
+                string fullmessage = "";
+                for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
+                {
+                    fullmessage += message[i] + " ";
+                }
+
+                Cloud.Logger.Log(LogPriority.Info, "[" + channel.Name + "] " + sender.Nick + ": " + fullmessage);
+
+                //TODO: Implement better version sending
+                /*if (sender.Hostname == "ctcp-scanner.rizon.net")
+                {
+                    SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
+                }*/
+
                 if (message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
                 {
                     string command = "";
@@ -941,6 +930,17 @@ namespace IRC.plugin
                 Cloud.Logger.LogEx(ex);
                 return null;
             }
+        }
+
+        private string[] CleanData(string[] data)
+        {
+            for (int i = 0; i < data.Length; i++)
+            {
+                if (data[i].StartsWith(":"))
+                    data[i] = data[i].Remove(0, 1);
+            }
+
+            return data;
         }
 
         #endregion

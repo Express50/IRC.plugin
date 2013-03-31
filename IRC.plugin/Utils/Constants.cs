@@ -29,7 +29,7 @@ namespace IRC.plugin.Utils
         public const int IRC_COMMAND_INDEX = 1;
 
         public const int NAMES_CHANNEL_NAME_INDEX = 4;
-        public const int NAMES_CHANNEL_USERS_START_INDEX = 6;
+        public const int NAMES_CHANNEL_USERS_START_INDEX = 5;
 
         public const int PRIVMSG_TARGET_INDEX = 2;
         public const int PRIVMSG_MESSAGE_INDEX = 3;
