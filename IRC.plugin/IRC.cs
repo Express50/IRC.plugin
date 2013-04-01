@@ -429,7 +429,7 @@ namespace IRC.plugin
 
                     if (!DontPrint.Contains(numeric))
                     {
-                        Cloud.Logger.Log(LogPriority.Info, data);
+                        Cloud.Logger.Log(LogPriority.Info, "Unhandled numeric: " + String.Join(" ", message));
                     }
 
                     else if (numeric == (int)Numerics.RPL_WELCOME)
@@ -802,6 +802,8 @@ namespace IRC.plugin
                 }
             }
 
+            Cloud.Logger.Log(LogPriority.Info, "User " + sender.Nick + " joins the room (" + channel.Name + ").");
+
             SendData("WHO", channel.Name);
         }
 
@@ -822,6 +824,8 @@ namespace IRC.plugin
                     channel.Users.Remove(sender);
                 }
             }
+
+            Cloud.Logger.Log(LogPriority.Info, "User " + sender.Nick + " leaves the room (" + channel.Name + ").");
         }
         #endregion
 
@@ -882,8 +886,16 @@ namespace IRC.plugin
                     case "reconnect":
                     case "restart":
                     case "reload":
-                        RestartThread = new Thread(DoRestart);
-                        RestartThread.Start();
+                        if (sender.Rank >= Rank.FullOp)
+                        {
+                            RestartThread = new Thread(DoRestart);
+                            RestartThread.Start();
+                        }
+
+                        else
+                        {
+                            SendData("PRIVMSG", channel.Name + " :@" + sender.Nick + ": Insufficient access.");
+                        }
                         break;
 
                     default:
