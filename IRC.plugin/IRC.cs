@@ -21,23 +21,30 @@ namespace IRC.plugin
     {
         private string version = Assembly.GetExecutingAssembly().GetName().Version.Major.ToString() + "." + Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString();
 
+        #region Connection Vars
         private string server;
         private int port;
         private string nick;
         private string password;
         private Channel channel;
+        #endregion
 
+        #region I/O Vars
         private NetworkStream nstream = null;
         private StreamWriter writer = null;
         private StreamReader reader = null;
+        #endregion
 
         private TcpClient client = null;
 
+        #region Threading Vars
         private Thread ListenThread;
         private Thread RestartThread;
         private Thread DisconnectThread;
         private object locker = new object();
+        #endregion
 
+        #region Logging Vars
         private int[] DontPrint = {(int)Numerics.RPL_MOTD, 
                                    (int)Numerics.RPL_WHOREPLY, 
                                    (int)Numerics.RPL_ENDOFWHO,
@@ -73,10 +80,24 @@ namespace IRC.plugin
                                    265,
                                    266,
                                    900};
+        #endregion
 
+        #region Helpers Vars
         public bool isConnected = false;
         public bool isRestarting = false;
         public bool isDisconnecting = false;
+        #endregion
+
+        #region Events
+        private event EventHandler<MessageArgs> ReceiveWHO;
+        private event EventHandler<MessageArgs> ReceiveNAMES;
+        private event EventHandler<MessageArgs> ReceivePRIVMSG;
+        private event EventHandler<MessageArgs> ReceiveNOTICE;
+        private event EventHandler<MessageArgs> ReceiveMODE;
+        private event EventHandler<MessageArgs> ReceiveKICK;
+        private event EventHandler<MessageArgs> ReceiveJOIN;
+        private event EventHandler<MessageArgs> ReceivePART;
+        #endregion
 
         #region EECloud
         protected override void OnConnect()
@@ -115,6 +136,15 @@ namespace IRC.plugin
                 nick = "DefaultIRCPBot";
                 channel = new Channel("#IRCP-Testing");
             }
+
+            ReceiveWHO += onWho;
+            ReceiveNAMES += onNames;
+            ReceivePRIVMSG += onPrivMsg;
+            ReceiveNOTICE += onNotice;
+            ReceiveMODE += onMode;
+            ReceiveKICK += onKick;
+            ReceiveJOIN += onJoin;
+            ReceivePART += onPart;
 
             Cloud.Logger.Log(LogPriority.Debug, "Enabled");
         }
@@ -403,7 +433,7 @@ namespace IRC.plugin
                             break;
 
                         case (int)Numerics.RPL_NAMREPLY:
-                            onNames(message);
+                            ReceiveNAMES.Invoke(null, new MessageArgs(null, message));
                             break;
 
                         case (int)Numerics.RPL_CHANNELMODEIS:
@@ -416,7 +446,7 @@ namespace IRC.plugin
                         case (int)Numerics.RPL_WHOREPLY:
                             if (message[Constants.RPLWHOREPLY_CHANNEL_NAME_INDEX] == channel.Name)
                             {
-                                onWho(message);
+                                ReceiveWHO.Invoke(null, new MessageArgs(null, message));
                             }
                             break;
 
@@ -463,22 +493,22 @@ namespace IRC.plugin
                         switch (message[Constants.IRC_COMMAND_INDEX])
                         {
                             case "PRIVMSG":
-                                onPrivMsg(hostmask, message);
+                                ReceivePRIVMSG.Invoke(null, new MessageArgs(hostmask, message));
                                 break;
                             case "NOTICE":
-                                onNotice(hostmask, message);
+                                ReceiveNOTICE.Invoke(null, new MessageArgs(hostmask, message));
                                 break;
                             case "MODE":
-                                onMode(hostmask, message);
+                                ReceiveMODE.Invoke(null, new MessageArgs(hostmask, message));
                                 break;
                             case "KICK":
-                                onKick(hostmask, message);
+                                ReceiveKICK.Invoke(null, new MessageArgs(hostmask, message));
                                 break;
                             case "JOIN":
-                                onJoin(hostmask, message);
+                                ReceiveJOIN.Invoke(null, new MessageArgs(hostmask, message));
                                 break;
                             case "PART":
-                                onPart(hostmask, message);
+                                ReceivePART.Invoke(null, new MessageArgs(hostmask, message));
                                 break;
                             default:
                                 break;
@@ -502,36 +532,36 @@ namespace IRC.plugin
         /// Called when you receive a WHO reply message from the IRC server.
         /// </summary>
         /// <param name="message">The message sent.</param>
-        private void onWho(string[] message)
+        private void onWho(object sender, MessageArgs e)
         {
             //Reply value:
             //channel realname hostname server[*] nick flags hopcount info
             //3
 
-            if (channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]) != null)
+            if (channel.Users.GetUser(e.message[Constants.RPLWHOREPLY_NICK_INDEX]) != null)
             {
-                channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Realname = message[Constants.RPLWHOREPLY_REALNAME_INDEX]; //Set the realname
-                channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Hostname = message[Constants.RPLWHOREPLY_HOSTNAME_INDEX]; //Set the hostname
+                channel.Users.GetUser(e.message[Constants.RPLWHOREPLY_NICK_INDEX]).Realname = e.message[Constants.RPLWHOREPLY_REALNAME_INDEX]; //Set the realname
+                channel.Users.GetUser(e.message[Constants.RPLWHOREPLY_NICK_INDEX]).Hostname = e.message[Constants.RPLWHOREPLY_HOSTNAME_INDEX]; //Set the hostname
 
-                Match flagMatch = Regex.Match(message[Constants.RPLWHOREPLY_FLAGS_INDEX], @"([\+\%\@\&\~])");
+                Match flagMatch = Regex.Match(e.message[Constants.RPLWHOREPLY_FLAGS_INDEX], @"([\+\%\@\&\~])");
 
                 if (flagMatch.Success)
                 {
                     switch (flagMatch.Groups[1].ToString())
                     {
-                        case "+": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.Voice;
+                        case "+": channel.Users.GetUser(e.message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.Voice;
                             break;
 
-                        case "%": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.HalfOp;
+                        case "%": channel.Users.GetUser(e.message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.HalfOp;
                             break;
 
-                        case "@": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.FullOp;
+                        case "@": channel.Users.GetUser(e.message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.FullOp;
                             break;
 
-                        case "&": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.Admin;
+                        case "&": channel.Users.GetUser(e.message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.Admin;
                             break;
 
-                        case "~": channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.Owner;
+                        case "~": channel.Users.GetUser(e.message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.Owner;
                             break;
 
                         default:
@@ -541,7 +571,7 @@ namespace IRC.plugin
 
                 else
                 {
-                    channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.None;
+                    channel.Users.GetUser(e.message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank = Rank.None;
                 }
             }
 
@@ -552,26 +582,26 @@ namespace IRC.plugin
         /// Called when you receive a NAMES message from the IRC server.
         /// </summary>
         /// <param name="message">The message sent.</param>
-        private void onNames(string[] message)
+        private void onNames(object sender, MessageArgs e)
         {
-            if (message[Constants.NAMES_CHANNEL_NAME_INDEX] == channel.Name)
+            if (e.message[Constants.NAMES_CHANNEL_NAME_INDEX] == channel.Name)
             {
-                for (int i = Constants.NAMES_CHANNEL_USERS_START_INDEX; i < message.Length; i++)
+                for (int i = Constants.NAMES_CHANNEL_USERS_START_INDEX; i < e.message.Length; i++)
                 {
-                    if (message[i].StartsWith("+") || message[i].StartsWith("%") || message[i].StartsWith("@") || message[i].StartsWith("~"))
+                    if (e.message[i].StartsWith("+") || e.message[i].StartsWith("%") || e.message[i].StartsWith("@") || e.message[i].StartsWith("~"))
                     {
-                        message[i] = message[i].Remove(0, 1);
-                        if (!(channel.Users.Exists((user) => user.Nick == message[i])))
+                        e.message[i] = e.message[i].Remove(0, 1);
+                        if (!(channel.Users.Exists((user) => user.Nick == e.message[i])))
                         {
-                            channel.Users.Add(new User(message[i]));
+                            channel.Users.Add(new User(e.message[i]));
                         }
                     }
 
                     else
                     {
-                        if (!(channel.Users.Exists((user) => user.Nick == message[i])))
+                        if (!(channel.Users.Exists((user) => user.Nick == e.message[i])))
                         {
-                            channel.Users.Add(new User(message[i]));
+                            channel.Users.Add(new User(e.message[i]));
                         }
                     }
                 }
@@ -590,20 +620,20 @@ namespace IRC.plugin
         /// </summary>
         /// <param name="hostmask">The hostmask of the sender.</param>
         /// <param name="message">The message sent.</param>
-        private void onPrivMsg(string hostmask, string[] message)
+        private void onPrivMsg(object sender, MessageArgs e)
         {
-            User sender = ExtractUserInfo(hostmask);
-            sender = channel.Users.GetUser(sender.Hostname);
+            User Sender = ExtractUserInfo(e.hostmask);
+            Sender = channel.Users.GetUser(Sender.Hostname);
 
-            if (message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
+            if (e.message[Constants.PRIVMSG_TARGET_INDEX] == channel.Name)
             {
                 string fullmessage = "";
-                for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
+                for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < e.message.Length; i++)
                 {
-                    fullmessage += message[i] + " ";
+                    fullmessage += e.message[i] + " ";
                 }
 
-                Cloud.Logger.Log(LogPriority.Info, "[" + channel.Name + "] " + sender.Nick + ": " + fullmessage);
+                Cloud.Logger.Log(LogPriority.Info, "[" + channel.Name + "] " + Sender.Nick + ": " + fullmessage);
 
                 //TODO: Implement better version sending
                 /*if (sender.Hostname == "ctcp-scanner.rizon.net")
@@ -611,15 +641,15 @@ namespace IRC.plugin
                     SendData("NOTICE", sender.Nick + " :VERSION " + " IRC.plugin " + version);
                 }*/
 
-                if (message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
+                if (e.message[Constants.PRIVMSG_MESSAGE_INDEX].StartsWith("!"))
                 {
                     string command = "";
-                    for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < message.Length; i++)
+                    for (int i = Constants.PRIVMSG_MESSAGE_INDEX; i < e.message.Length; i++)
                     {
-                        command += message[i] + " ";
+                        command += e.message[i] + " ";
                     }
 
-                    ExecuteCommand(command, sender);
+                    ExecuteCommand(command, Sender);
                 }
             }
         }
@@ -629,16 +659,16 @@ namespace IRC.plugin
         /// </summary>
         /// <param name="hostmask">The hostmask of the sender.</param>
         /// <param name="message">The message sent.</param>
-        private void onNotice(string hostmask, string[] message)
+        private void onNotice(object sender, MessageArgs e)
         {
-            User sender = ExtractUserInfo(hostmask);
+            User Sender = ExtractUserInfo(e.hostmask);
 
-            if (sender.Nick.ToLower() == "nickserv")
+            if (Sender.Nick.ToLower() == "nickserv")
             {
                 string fullmessage = "";
-                for (int i = Constants.NOTICE_MESSAGE_INDEX; i < message.Length; i++)
+                for (int i = Constants.NOTICE_MESSAGE_INDEX; i < e.message.Length; i++)
                 {
-                    fullmessage += message[i] + " ";
+                    fullmessage += e.message[i] + " ";
                 }
 
                 if (fullmessage.ToLower().Contains("password accepted"))
@@ -662,10 +692,10 @@ namespace IRC.plugin
         /// </summary>
         /// <param name="hostmask">The hostmask of the sender.</param>
         /// <param name="message">The message sent.</param>
-        private void onMode(string hostmask, string[] message)
+        private void onMode(object sender, MessageArgs e)
         {
-            User sender = ExtractUserInfo(hostmask);
-            sender = channel.Users.GetUser(sender.Hostname);
+            User Sender = ExtractUserInfo(e.hostmask);
+            Sender = channel.Users.GetUser(Sender.Hostname);
             SendData("WHO", channel.Name);
 
             //Split into onChannelMode() and onUserMode()
@@ -765,27 +795,27 @@ namespace IRC.plugin
         /// </summary>
         /// <param name="hostmask">The hostmask of the sender.</param>
         /// <param name="message">The message sent.</param>
-        private void onKick(string hostmask, string[] message)
+        private void onKick(object sender, MessageArgs e)
         {
-            User sender = ExtractUserInfo(hostmask);
-            sender = channel.Users.GetUser(sender.Nick);
+            User Sender = ExtractUserInfo(e.hostmask);
+            Sender = channel.Users.GetUser(Sender.Nick);
 
-            if (sender != null)
+            if (Sender != null)
             {
-                if (channel.Users.Contains(channel.Users.GetUser(message[Constants.KICK_TARGET_USER_INDEX])))
+                if (channel.Users.Contains(channel.Users.GetUser(e.message[Constants.KICK_TARGET_USER_INDEX])))
                 {
-                    channel.Users.Remove(channel.Users.GetUser(message[Constants.KICK_TARGET_USER_INDEX]));
+                    channel.Users.Remove(channel.Users.GetUser(e.message[Constants.KICK_TARGET_USER_INDEX]));
 
-                    if (message[Constants.KICK_TARGET_USER_INDEX] == nick)
+                    if (e.message[Constants.KICK_TARGET_USER_INDEX] == nick)
                     {
-                        Cloud.Logger.Log(LogPriority.Info, "You've been kicked from " + channel.Name + " by " + sender.Nick + ". Reason: " + message[Constants.KICK_REASON_INDEX]);
+                        Cloud.Logger.Log(LogPriority.Info, "You've been kicked from " + channel.Name + " by " + Sender.Nick + ". Reason: " + e.message[Constants.KICK_REASON_INDEX]);
                         Cloud.Logger.Log(LogPriority.Info, "Rejoining...");
                         JoinChannel();
                     }
 
                     else
                     {
-                        Cloud.Logger.Log(LogPriority.Info, message[Constants.KICK_TARGET_USER_INDEX] + " has been kicked from " + channel.Name + " by " + sender.Nick + ". Reason: " + message[Constants.KICK_REASON_INDEX]);
+                        Cloud.Logger.Log(LogPriority.Info, e.message[Constants.KICK_TARGET_USER_INDEX] + " has been kicked from " + channel.Name + " by " + Sender.Nick + ". Reason: " + e.message[Constants.KICK_REASON_INDEX]);
                     }
                 }
             }
@@ -796,18 +826,18 @@ namespace IRC.plugin
         /// </summary>
         /// <param name="hostmask">The hostmask of the sender.</param>
         /// <param name="message">The message sent.</param>
-        private void onJoin(string hostmask, string[] message)
+        private void onJoin(object sender, MessageArgs e)
         {
-            User sender = ExtractUserInfo(hostmask);
+            User Sender = ExtractUserInfo(e.hostmask);
 
-            if (sender != null)
+            if (Sender != null)
             {
-                if (!(channel.Users.Contains(sender)))
+                if (!(channel.Users.Contains(Sender)))
                 {
-                    channel.Users.Add(sender);
+                    channel.Users.Add(Sender);
 
-                    if (sender.Nick != nick)
-                        Cloud.Logger.Log(LogPriority.Info, "User " + sender.Nick + " joins the room (" + channel.Name + ").");
+                    if (Sender.Nick != nick)
+                        Cloud.Logger.Log(LogPriority.Info, "User " + Sender.Nick + " joins the room (" + channel.Name + ").");
 
                     else
                         Cloud.Logger.Log(LogPriority.Info, "You joined the room (" + channel.Name + ").");
@@ -823,17 +853,17 @@ namespace IRC.plugin
         /// </summary>
         /// <param name="hostmask">The hostmask of the sender.</param>
         /// <param name="message">The message sent.</param>
-        private void onPart(string hostmask, string[] message)
+        private void onPart(object sender, MessageArgs e)
         {
-            User sender = ExtractUserInfo(hostmask);
-            sender = channel.Users.GetUser(sender.Nick);
+            User Sender = ExtractUserInfo(e.hostmask);
+            Sender = channel.Users.GetUser(Sender.Nick);
 
-            if (sender != null)
+            if (Sender != null)
             {
-                if (channel.Users.Contains(sender))
+                if (channel.Users.Contains(Sender))
                 {
-                    channel.Users.Remove(sender);
-                    Cloud.Logger.Log(LogPriority.Info, "User " + sender.Nick + " leaves the room (" + channel.Name + "). Reason: " + message[Constants.PART_REASON_INDEX].Trim());
+                    channel.Users.Remove(Sender);
+                    Cloud.Logger.Log(LogPriority.Info, "User " + Sender.Nick + " leaves the room (" + channel.Name + "). Reason: " + e.message[Constants.PART_REASON_INDEX].Trim());
                 }
             }
         }
