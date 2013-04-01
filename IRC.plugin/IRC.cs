@@ -352,7 +352,7 @@ namespace IRC.plugin
                     writer.WriteLine(cmd);
                     writer.Flush();
 
-                    Cloud.Logger.Log(LogPriority.Info, "[SEND] " + cmd);
+                    //Cloud.Logger.Log(LogPriority.Info, "[SEND] " + cmd);
                 }
 
                 else
@@ -360,7 +360,7 @@ namespace IRC.plugin
                     writer.WriteLine(cmd + " " + param);
                     writer.Flush();
 
-                    Cloud.Logger.Log(LogPriority.Info, "[SEND] " + cmd + " " + param);
+                    //Cloud.Logger.Log(LogPriority.Info, "[SEND] " + cmd + " " + param);
                 }
             }
 
@@ -545,7 +545,7 @@ namespace IRC.plugin
                 }
             }
 
-            Cloud.Logger.Log(LogPriority.Info, message[Constants.RPLWHOREPLY_FLAGS_INDEX] + "-> " + message[Constants.RPLWHOREPLY_NICK_INDEX] + " (" + channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank + ")");
+            //Cloud.Logger.Log(LogPriority.Info, message[Constants.RPLWHOREPLY_FLAGS_INDEX] + "-> " + message[Constants.RPLWHOREPLY_NICK_INDEX] + " (" + channel.Users.GetUser(message[Constants.RPLWHOREPLY_NICK_INDEX]).Rank + ")");
         }
 
         /// <summary>
@@ -768,7 +768,7 @@ namespace IRC.plugin
         private void onKick(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
-            sender = channel.Users.GetUser(sender.Hostname);
+            sender = channel.Users.GetUser(sender.Nick);
 
             if (sender != null)
             {
@@ -778,7 +778,14 @@ namespace IRC.plugin
 
                     if (message[Constants.KICK_TARGET_USER_INDEX] == nick)
                     {
+                        Cloud.Logger.Log(LogPriority.Info, "You've been kicked from " + channel.Name + " by " + sender.Nick + ". Reason: " + message[Constants.KICK_REASON_INDEX]);
+                        Cloud.Logger.Log(LogPriority.Info, "Rejoining...");
                         JoinChannel();
+                    }
+
+                    else
+                    {
+                        Cloud.Logger.Log(LogPriority.Info, message[Constants.KICK_TARGET_USER_INDEX] + " has been kicked from " + channel.Name + " by " + sender.Nick + ". Reason: " + message[Constants.KICK_REASON_INDEX]);
                     }
                 }
             }
@@ -792,17 +799,21 @@ namespace IRC.plugin
         private void onJoin(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
-            sender = channel.Users.GetUser(sender.Hostname);
 
             if (sender != null)
             {
                 if (!(channel.Users.Contains(sender)))
                 {
                     channel.Users.Add(sender);
+
+                    if (sender.Nick != nick)
+                        Cloud.Logger.Log(LogPriority.Info, "User " + sender.Nick + " joins the room (" + channel.Name + ").");
+
+                    else
+                        Cloud.Logger.Log(LogPriority.Info, "You joined the room (" + channel.Name + ").");
                 }
             }
 
-            Cloud.Logger.Log(LogPriority.Info, "User " + sender.Nick + " joins the room (" + channel.Name + ").");
 
             SendData("WHO", channel.Name);
         }
@@ -815,17 +826,16 @@ namespace IRC.plugin
         private void onPart(string hostmask, string[] message)
         {
             User sender = ExtractUserInfo(hostmask);
-            sender = channel.Users.GetUser(sender.Hostname);
+            sender = channel.Users.GetUser(sender.Nick);
 
             if (sender != null)
             {
                 if (channel.Users.Contains(sender))
                 {
                     channel.Users.Remove(sender);
+                    Cloud.Logger.Log(LogPriority.Info, "User " + sender.Nick + " leaves the room (" + channel.Name + "). Reason: " + message[Constants.PART_REASON_INDEX].Trim());
                 }
             }
-
-            Cloud.Logger.Log(LogPriority.Info, "User " + sender.Nick + " leaves the room (" + channel.Name + ").");
         }
         #endregion
 
@@ -953,6 +963,19 @@ namespace IRC.plugin
             }
 
             return data;
+        }
+
+        private string RankToString(Rank rank)
+        {
+            switch (rank)
+            {
+                case Rank.Voice: return "+";
+                case Rank.HalfOp: return "%";
+                case Rank.FullOp: return "@";
+                case Rank.Admin: return "&";
+                case Rank.Owner: return "~";
+                default: return "";
+            }
         }
 
         #endregion
