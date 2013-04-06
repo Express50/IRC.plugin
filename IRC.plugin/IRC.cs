@@ -490,28 +490,34 @@ namespace IRC.plugin
 
                     if (hostmask.Contains('@') && hostmask.Contains('!'))
                     {
+                        EventHandler<MessageArgs> handler = null;
                         switch (message[Constants.IRC_COMMAND_INDEX])
                         {
                             case "PRIVMSG":
-                                ReceivePRIVMSG.Invoke(null, new MessageArgs(hostmask, message));
+                                handler = ReceivePRIVMSG;
                                 break;
                             case "NOTICE":
-                                ReceiveNOTICE.Invoke(null, new MessageArgs(hostmask, message));
+                                handler = ReceiveNOTICE;
                                 break;
                             case "MODE":
-                                ReceiveMODE.Invoke(null, new MessageArgs(hostmask, message));
+                                handler = ReceiveMODE;
                                 break;
                             case "KICK":
-                                ReceiveKICK.Invoke(null, new MessageArgs(hostmask, message));
+                                handler = ReceiveKICK;
                                 break;
                             case "JOIN":
-                                ReceiveJOIN.Invoke(null, new MessageArgs(hostmask, message));
+                                handler = ReceiveJOIN;
                                 break;
                             case "PART":
-                                ReceivePART.Invoke(null, new MessageArgs(hostmask, message));
+                                handler = ReceivePART;
                                 break;
                             default:
                                 break;
+                        }
+
+                        if (handler != null)
+                        {
+                            handler.Invoke(null, new MessageArgs(hostmask, message));
                         }
                     }
                 }
